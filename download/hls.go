@@ -3,6 +3,7 @@ package download
 import (
 	"crypto/aes"
 	"crypto/cipher"
+	"errors"
 	"fmt"
 	"io/ioutil"
 	"net/http"
@@ -10,7 +11,6 @@ import (
 	"os/exec"
 	"path/filepath"
 	"strings"
-	"sync"
 
 	"github.com/grafov/m3u8"
 )
@@ -22,6 +22,9 @@ func httpFetch(uri string) ([]byte, error) {
 		return nil, err
 	}
 	defer resp.Body.Close()
+	if resp.StatusCode > 400 {
+		return nil, errors.New(resp.Status)
+	}
 	body, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
 		return nil, err
@@ -51,29 +54,29 @@ func fetchM3U8Playlist(url string) (*m3u8.MediaPlaylist, error) {
 	return playlist, err
 }
 
-func fetchM3U8Segment(key, iv []byte, uri, path string, wg *sync.WaitGroup) error {
+func fetchM3U8Segment(key, iv []byte, uri, path string, errChan chan error) {
 	var err error
-	defer wg.Done()
 	data, err := httpFetch(uri)
 	if err != nil {
-		return err
+		errChan <- err
 	}
 	if key != nil {
 		block, err := aes.NewCipher(key)
 		if err != nil {
-			return err
+			errChan <- err
 		}
 		if len(data)%aes.BlockSize != 0 {
-			return fmt.Errorf("Ciphertext is not a multiple of the block size. len(data)=%d, len(block)=%d", len(data), aes.BlockSize)
+			err = fmt.Errorf("Ciphertext is not a multiple of the block size. len(data)=%d, len(block)=%d", len(data), aes.BlockSize)
+			errChan <- err
 		}
 		mode := cipher.NewCBCDecrypter(block, iv)
 		mode.CryptBlocks(data, data)
 	}
 	err = ioutil.WriteFile(path, data, os.ModePerm)
 	if err != nil {
-		return err
+		errChan <- err
 	}
-	return err
+	errChan <- err
 }
 
 func fetchM3U8Track(uri, path string) error {
@@ -84,7 +87,7 @@ func fetchM3U8Track(uri, path string) error {
 	if err != nil {
 		return err
 	}
-	defer myListFile.Close()
+	// defer myListFile.Close()
 
 	keySet := make(map[string]bool)
 	keyValues := make(map[string][]byte)
@@ -92,7 +95,7 @@ func fetchM3U8Track(uri, path string) error {
 	if err != nil {
 		return err
 	}
-	var wg sync.WaitGroup
+	errChan := make(chan error, len(mediapl.Segments))
 	var i uint8
 	for _, segment := range mediapl.Segments {
 		if segment != nil {
@@ -113,18 +116,22 @@ func fetchM3U8Track(uri, path string) error {
 				iv[len(keyValue)-1] = i
 			}
 			_, err = myListFile.WriteString(fmt.Sprintf("file '%d.ts'\n", i))
-			tsPath := filepath.Join(path, fmt.Sprintf("%d.ts", i))
-			absoluteSegmentURI := filepath.ToSlash(filepath.Join(filepath.Dir(uri), segment.URI))
-			absoluteSegmentURI = strings.ReplaceAll(absoluteSegmentURI, ":/", "://")
-			go fetchM3U8Segment(keyValue, iv, absoluteSegmentURI, tsPath, &wg)
-			wg.Add(1)
 			if err != nil {
 				return err
 			}
+			tsPath := filepath.Join(path, fmt.Sprintf("%d.ts", i))
+			absoluteSegmentURI := filepath.ToSlash(filepath.Join(filepath.Dir(uri), segment.URI))
+			absoluteSegmentURI = strings.ReplaceAll(absoluteSegmentURI, ":/", "://")
+			go fetchM3U8Segment(keyValue, iv, absoluteSegmentURI, tsPath, errChan)
 			i++
 		}
 	}
-	wg.Wait()
+	for j := 0; j < int(i); j++ {
+		err = <-errChan
+		if err != nil {
+			return err
+		}
+	}
 	return err
 }
 
@@ -157,6 +164,7 @@ func HLS(uri string) ([]byte, error) {
 		"-",
 	).Output()
 	if err != nil {
+		err = errors.New("ffmpeg: " + err.Error())
 		return nil, err
 	}
 	return out, nil
