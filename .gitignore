@@ -16,6 +16,7 @@
 
 .vscode/
 *.mp3
+*.ts
 *.jpg
 *.html
 *.json
