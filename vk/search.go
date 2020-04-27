@@ -18,7 +18,7 @@ func loadHTML(query string, offset int, u *User) io.Reader {
 	return bodyReader
 }
 
-func SearchQuery(query string, offset int, u *User) ([]Audio, error) {
+func SearchQuery(query string, offset int, u *User) ([]*Audio, error) {
 	var err error
 	// bodyReader, err := loadHTML(query, offset, u)
 	bodyReader, err := os.Open("al_search_body.html")
@@ -27,7 +27,7 @@ func SearchQuery(query string, offset int, u *User) ([]Audio, error) {
 	}
 	defer bodyReader.Close()
 	z := html.NewTokenizer(bodyReader)
-	var audios []Audio
+	var audios []*Audio
 	for {
 		tt := z.Next()
 		switch {

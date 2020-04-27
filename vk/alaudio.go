@@ -58,34 +58,53 @@ var audioItemIndex = map[string]int{
 	"AUDIO_ITEM_EXPLICIT_BIT":       1024,
 }
 
-func extractPayload(body []byte) map[string]interface{} {
+func checkVKError(outerArray []interface{}) error {
+	var err error
+	switch vkErr := outerArray[0].(type) {
+	case string:
+		vkErrI, _ := strconv.Atoi(vkErr)
+		if vkErrI > 0 {
+			err = fmt.Errorf("VK Error : %d", vkErrI)
+			return err
+		}
+	case int:
+		if vkErr > 0 {
+			err = fmt.Errorf("VK Error: %d", vkErr)
+			return err
+		}
+	}
+	return err
+}
+
+func extractPayload(body []byte) (map[string]interface{}, error) {
+	var err error
+	var payload map[string]interface{}
 	re := regexp.MustCompile("<!--(.*?)$")
 	subm := re.FindSubmatch(body)
-	var payload map[string]interface{}
-	_ = json.Unmarshal(subm[1], &payload)
-	return payload
+	if len(subm) == 0 {
+		err = fmt.Errorf("VK Error (payload). Body: %s", string(body))
+		return nil, err
+	}
+	err = json.Unmarshal(subm[1], &payload)
+	return payload, err
 }
 
 func extractRawAudios(payload map[string]interface{}) ([][]interface{}, error) {
 	var err error
 	var rawAudios [][]interface{}
 	outerArray, _ := payload["payload"].([]interface{})
-	innerArray, _ := outerArray[1].([]interface{})
-	vkErrorS, _ := outerArray[0].(string)
-	vkError, _ := strconv.Atoi(vkErrorS)
-	if vkError > 0 {
-		err = fmt.Errorf("VK Error: %d. Reason: %s", vkError, innerArray[0])
-	} else {
-		if len(innerArray) == 0 {
-			err = errors.New("audio(s) do(es) not exist or invalid id/remixsid")
-		} else {
-			rawRawAudios, _ := innerArray[0].([]interface{})
-			for _, rawAudio := range rawRawAudios {
-				audio, _ := rawAudio.([]interface{})
-				rawAudios = append(rawAudios, audio)
-			}
-		}
+	err = checkVKError(outerArray)
+	if err != nil {
+		err = errors.New(err.Error() + " (rawAudios) ")
+		return nil, err
 	}
+	innerArray, _ := outerArray[1].([]interface{})
+	rawRawAudios, _ := innerArray[0].([]interface{})
+	for _, rawAudio := range rawRawAudios {
+		audio, _ := rawAudio.([]interface{})
+		rawAudios = append(rawAudios, audio)
+	}
+
 	return rawAudios, err
 }
 
@@ -93,12 +112,13 @@ func extractRawPlaylist(payload map[string]interface{}) (map[string]interface{},
 	var err error
 	var rawPlaylist map[string]interface{}
 	outerArray, _ := payload["payload"].([]interface{})
-	innerArray, _ := outerArray[1].([]interface{})
-	if len(innerArray) == 0 {
-		err = errors.New("playlist does not exist or invalid id/remixsid")
-	} else {
-		rawPlaylist, _ = innerArray[0].(map[string]interface{})
+	err = checkVKError(outerArray)
+	if err != nil {
+		err = errors.New(err.Error() + " (rawPlaylist) ")
+		return nil, err
 	}
+	innerArray, _ := outerArray[1].([]interface{})
+	rawPlaylist, _ = innerArray[0].(map[string]interface{})
 	return rawPlaylist, err
 }
 
@@ -107,13 +127,14 @@ func extractRawSection(payload map[string]interface{}) (string, map[string]inter
 	var rawSection map[string]interface{}
 	var rawHTML string
 	outerArray, _ := payload["payload"].([]interface{})
-	innerArray, _ := outerArray[1].([]interface{})
-	if len(innerArray) == 0 {
-		err = errors.New("playlist does not exist or invalid id/remixsid")
-	} else {
-		rawHTML, _ = innerArray[0].(string)
-		rawSection, _ = innerArray[1].(map[string]interface{})
+	err = checkVKError(outerArray)
+	if err != nil {
+		err = errors.New(err.Error() + " (rawSection) ")
+		return "", nil, err
 	}
+	innerArray, _ := outerArray[1].([]interface{})
+	rawHTML, _ = innerArray[0].(string)
+	rawSection, _ = innerArray[1].(map[string]interface{})
 	return rawHTML, rawSection, err
 }
 
@@ -121,12 +142,13 @@ func extractRawHTML(payload map[string]interface{}) ([]byte, error) {
 	var err error
 	var rawHTML string
 	outerArray, _ := payload["payload"].([]interface{})
-	innerArray, _ := outerArray[1].([]interface{})
-	if len(innerArray) == 0 {
-		err = errors.New("playlist does not exist or invalid id/remixsid")
-	} else {
-		rawHTML, _ = innerArray[1].(string)
+	err = checkVKError(outerArray)
+	if err != nil {
+		err = errors.New(err.Error() + " (rawAudios) ")
+		return nil, err
 	}
+	innerArray, _ := outerArray[1].([]interface{})
+	rawHTML, _ = innerArray[1].(string)
 	return []byte(rawHTML), err
 }
 
@@ -202,7 +224,7 @@ func sectionPOST(query string, u *User) []byte {
 
 func reloadAudio(ids []string, u *User, ch chan [][]interface{}) {
 	body := reloadAudioPOST(ids, u)
-	payload := extractPayload(body)
+	payload, err := extractPayload(body)
 	rawAudios, err := extractRawAudios(payload)
 	if err != nil {
 		log.Println("Ids:", ids, "User:", u)
@@ -214,7 +236,7 @@ func reloadAudio(ids []string, u *User, ch chan [][]interface{}) {
 
 func alSearch(query string, offset int, u *User, ch chan []byte) {
 	body := searchPOST(query, offset, u)
-	payload := extractPayload(body)
+	payload, err := extractPayload(body)
 	rawHTML, err := extractRawHTML(payload)
 	if err != nil {
 		log.Fatalln(err)
@@ -223,12 +245,15 @@ func alSearch(query string, offset int, u *User, ch chan []byte) {
 	ch <- rawHTML
 }
 
-func alSection(query string, u *User) ([]string, Playlist) {
+func alSection(query string, u *User) ([]string, *Playlist, error) {
 	body := sectionPOST(query, u)
-	payload := extractPayload(body)
+	payload, err := extractPayload(body)
+	if err != nil {
+		return nil, nil, err
+	}
 	rawHTML, rawSection, err := extractRawSection(payload)
 	if err != nil {
-		panic(err)
+		return nil, nil, err
 	}
 	rawSectionPlaylists, _ := rawSection["playlists"].([]interface{})
 	var playlists []map[string]interface{}
@@ -249,10 +274,10 @@ func alSection(query string, u *User) ([]string, Playlist) {
 		playlistIDs = append(playlistIDs, k)
 	}
 	lastPlaylist := playlists[len(playlists)-1]
-	return playlistIDs, NewPlaylist(lastPlaylist)
+	return playlistIDs, NewPlaylist(lastPlaylist), nil
 }
 
-func acquireURLs(audioList []Audio, u *User) error {
+func acquireURLs(audioList []*Audio, u *User) error {
 	var err error
 	var audioIds []string
 	for _, audio := range audioList {
@@ -275,7 +300,7 @@ func acquireURLs(audioList []Audio, u *User) error {
 
 	audioIndex := make(map[int]*Audio)
 	for i := range audioList {
-		audio := &audioList[i]
+		audio := audioList[i]
 		audioIndex[audio.AudioID] = audio
 	}
 
@@ -315,7 +340,7 @@ type Playlist struct {
 	AddClasses     string
 	GridCovers     string
 	IsBlocked      bool
-	List           []Audio
+	List           []*Audio
 	HasMore        bool
 	NextOffset     int
 	TotalCount     int
@@ -356,7 +381,7 @@ func (playlist *Playlist) FullID() string {
 	return strconv.Itoa(playlist.OwnerID) + "_" + strconv.Itoa(playlist.ID) + "_" + playlist.AccessHash
 }
 
-func NewPlaylist(rawPlaylist map[string]interface{}) Playlist {
+func NewPlaylist(rawPlaylist map[string]interface{}) *Playlist {
 	playlist := Playlist{}
 	var ok bool
 	for k, v := range rawPlaylist {
@@ -526,7 +551,7 @@ func NewPlaylist(rawPlaylist map[string]interface{}) Playlist {
 	for i := range playlist.List {
 		playlist.List[i].htmlUnescape()
 	}
-	return playlist
+	return &playlist
 }
 
 type Audio struct {
@@ -569,14 +594,19 @@ func (audio *Audio) htmlUnescape() {
 	audio.Performer = html.UnescapeString(audio.Performer)
 }
 
-func (audio *Audio) DecypherURL(u *User) {
+func (audio *Audio) DecypherURL(u *User) error {
+	var err error
 	if audio.URL != "" && strings.Contains(audio.URL, "audio_api_unavailable") {
-		audio.URL = DecypherAudioURL(audio.URL, u.ID)
+		audio.URL, err = decypherAudioURL(audio.URL, u.ID)
 	}
+	if err != nil {
+		panic(err)
+	}
+	return err
 }
 
 // NewAudio accepts a rawAudio []interface{} coming from Playlist.List and returns an Audio object
-func NewAudio(rawAudio []interface{}) Audio {
+func NewAudio(rawAudio []interface{}) *Audio {
 	audio := Audio{}
 	var flags int
 
@@ -696,37 +726,37 @@ func NewAudio(rawAudio []interface{}) Audio {
 
 	audio.htmlUnescape()
 
-	return audio
+	return &audio
 }
 
-func LoadPlaylist(id string, u *User) Playlist {
+func LoadPlaylist(id string, u *User) *Playlist {
 	s := strings.Split(id, "_")
 	ownerID, _ := strconv.Atoi(s[0])
 	playlistID, _ := strconv.Atoi(s[1])
 	accessHash := s[2]
 	body := loadSectionPOST(ownerID, playlistID, 0, accessHash, u)
-	payload := extractPayload(body)
+	payload, err := extractPayload(body)
 	rawPlaylist, err := extractRawPlaylist(payload)
 	if err != nil {
 		log.Println("Id:", id, "User:", u)
-		log.Fatalln(err)
-		return *new(Playlist)
+		log.Println(err)
+		return new(Playlist)
 	}
 	return NewPlaylist(rawPlaylist)
 }
 
-func LoadPlaylistChan(id string, u *User, ch chan Playlist) {
+func LoadPlaylistChan(id string, u *User, ch chan *Playlist) {
 	pl := LoadPlaylist(id, u)
 	ch <- pl
 }
 
-func LoadPlaylistChanMap(id string, u *User, chMap map[string](chan Playlist), wg *sync.WaitGroup) {
+func LoadPlaylistChanMap(id string, u *User, chMap map[string](chan *Playlist), wg *sync.WaitGroup) {
 	pl := LoadPlaylist(id, u)
 	wg.Done()
 	chMap[id] <- pl
 }
 
-func LoadAudio(id string, u *User) Audio {
+func LoadAudio(id string, u *User) *Audio {
 	ch := make(chan [][]interface{})
 	go reloadAudio([]string{id}, u, ch)
 	rawAudios := <-ch
@@ -735,13 +765,13 @@ func LoadAudio(id string, u *User) Audio {
 	return audio
 }
 
-func LoadAudioChan(id string, u *User, ch chan Audio, wg *sync.WaitGroup) {
+func LoadAudioChan(id string, u *User, ch chan *Audio, wg *sync.WaitGroup) {
 	a := LoadAudio(id, u)
 	wg.Done()
 	ch <- a
 }
 
-func LoadAudioChanMap(id string, u *User, chMap map[string](chan Audio), wg *sync.WaitGroup) {
+func LoadAudioChanMap(id string, u *User, chMap map[string](chan *Audio), wg *sync.WaitGroup) {
 	a := LoadAudio(id, u)
 	wg.Done()
 	chMap[id] <- a

@@ -1,6 +1,7 @@
 package vk
 
 import (
+	"errors"
 	"io/ioutil"
 	"log"
 	"net/http"
@@ -47,20 +48,22 @@ func login(username, password string) (remixsid string, userID int, err error) {
 	}
 	resp, err := client.PostForm(u.String(), data)
 	if err != nil {
-		log.Fatal(err)
 		return
 	}
 	defer resp.Body.Close()
 	for _, cookie := range jar.Cookies(u) {
 		if cookie.Name == "remixsid" {
 			remixsid = cookie.Value
-		}
-		if cookie.Name == "l" {
+		} else if cookie.Name == "l" {
 			userID, err = strconv.Atoi(cookie.Value)
 			if err != nil {
-				log.Fatalln(err)
+				return
 			}
 		}
+	}
+	if remixsid == "" || userID == 0 {
+		err = errors.New("Auth failed. Check credentials! ")
+		return
 	}
 	return
 }
@@ -73,12 +76,10 @@ type User struct {
 	password string
 }
 
-func (u *User) Authenticate() {
+func (u *User) Authenticate() error {
 	var err error
 	u.RemixSID, u.ID, err = login(u.login, u.password)
-	if err != nil {
-		panic(err)
-	}
+	return err
 }
 
 func GetDefaultUser() *User {
