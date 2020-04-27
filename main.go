@@ -68,13 +68,14 @@ func section() {
 				apicCover = a.CoverURLp
 			}
 			query.Set("apic_cover", base64.URLEncoding.EncodeToString([]byte(apicCover)))
-			uri := "http://localhost/" +
-				base64.URLEncoding.EncodeToString([]byte(a.URL)) +
-				"/" +
-				url.PathEscape(strings.ReplaceAll(a.Performer, "/", "|")+" — "+strings.ReplaceAll(a.Title, "/", "|")) +
-				".mp3" +
-				"?" +
-				query.Encode()
+			// uri := "http://localhost/" + base64.URLEncoding.EncodeToString([]byte(a.URL)) + "/" + url.PathEscape(strings.ReplaceAll(a.Performer, "/", "|")+" — "+strings.ReplaceAll(a.Title, "/", "|")) + ".mp3" + "?" + query.Encode()
+			uri := fmt.Sprintf(
+				"http://localhost/%s/%s — %s.mp3?%s",
+				base64.URLEncoding.EncodeToString([]byte(a.URL)),
+				url.PathEscape(strings.ReplaceAll(a.Performer, "/", "|")),
+				url.PathEscape(strings.ReplaceAll(a.Title, "/", "|")),
+				query.Encode(),
+			)
 			fmt.Println(uri, len(uri))
 		}
 	}
