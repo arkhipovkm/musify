@@ -139,7 +139,7 @@ func HLS(uri string) ([]byte, error) {
 		return nil, err
 	}
 	out, err := exec.Command(
-		"ffmpeg.exe",
+		"ffmpeg",
 		"-hide_banner",
 		"-loglevel",
 		"panic",
