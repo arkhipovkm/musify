@@ -10,9 +10,9 @@ import (
 	"time"
 
 	"github.com/arkhipovkm/id3-go"
-	"gitlab.com/arkhipovkm/go/musify/download"
-	"gitlab.com/arkhipovkm/go/musify/utils"
-	"gitlab.com/arkhipovkm/go/musify/vk"
+	"github.com/arkhipovkm/musify/download"
+	"github.com/arkhipovkm/musify/utils"
+	"github.com/arkhipovkm/musify/vk"
 )
 
 func search() {

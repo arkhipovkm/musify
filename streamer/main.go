@@ -11,8 +11,8 @@ import (
 	"strings"
 
 	"github.com/arkhipovkm/id3-go"
-	"gitlab.com/arkhipovkm/go/musify/download"
-	"gitlab.com/arkhipovkm/go/musify/utils"
+	"github.com/arkhipovkm/musify/download"
+	"github.com/arkhipovkm/musify/utils"
 )
 
 func decodeBase64URI(base64EncodedURI string) (string, error) {
