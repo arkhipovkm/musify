@@ -43,7 +43,7 @@ func httpGETChan(uri string, dataChan chan []byte, errChan chan error) {
 }
 
 func handleError(w *http.ResponseWriter, err error) {
-	log.Fatalln(err.Error())
+	log.Println(err.Error())
 	(*w).WriteHeader(http.StatusInternalServerError)
 	(*w).Write([]byte(err.Error()))
 }
@@ -148,6 +148,7 @@ func handler(w http.ResponseWriter, r *http.Request) {
 	}
 	w.Header().Add("Content-Type", "audio/mpeg")
 	w.Write(fileData)
+	log.Println("OK")
 	return
 }
 
