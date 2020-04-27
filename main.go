@@ -4,6 +4,7 @@ import (
 	"encoding/base64"
 	"fmt"
 	"io/ioutil"
+	"log"
 	"net/url"
 	"strconv"
 	"strings"
@@ -32,14 +33,15 @@ func search() {
 
 func section() {
 	u := vk.GetDefaultUser()
-	u.RemixSID = "9a5392c868320aaefcda2d0fab75211a5c5336dd4537f4b12aa7e5345bd42"
-	u.ID = 5567597
-	// u.Authenticate()
+	u.Authenticate()
 	nsec := time.Now().UnixNano()
 	offset := 0
 	n := 20
-	playlistMap, audios := vk.SectionQuery("швец", offset, n, u)
-	fmt.Println("Sec: ", float64(time.Now().UnixNano()-nsec)/float64(10e9))
+	playlistMap, audios, err := vk.SectionQuery("швец", offset, n, u)
+	if err != nil {
+		panic(err)
+	}
+	log.Println("Sec: ", float64(time.Now().UnixNano()-nsec)/float64(10e9))
 	for _, a := range audios {
 		u := strings.Split(a.URL, "?")[0]
 		album := playlistMap[a.Album]
@@ -66,7 +68,7 @@ func section() {
 				apicCover = a.CoverURLp
 			}
 			query.Set("apic_cover", base64.URLEncoding.EncodeToString([]byte(apicCover)))
-			uri := "http://localhost:8080/" + base64.URLEncoding.EncodeToString([]byte(a.URL)) + "?" + query.Encode()
+			uri := "http://localhost/" + base64.URLEncoding.EncodeToString([]byte(a.URL)) + "?" + query.Encode()
 			fmt.Println(uri, len(uri))
 		}
 	}
