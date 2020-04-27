@@ -1,7 +1,7 @@
-package download
+package utils
 
 import (
-	"fmt"
+	"log"
 
 	id3 "github.com/arkhipovkm/id3-go"
 	v2 "github.com/arkhipovkm/id3-go/v2"
@@ -16,35 +16,33 @@ import (
 // > Optionally Album Artwork (Cover)
 func SetID3Tag(tag *id3.File, performer, title, album, year, trck string) error {
 	var err error
+	log.Println("Setting ID3 Tag:", performer, title, album, year, trck)
 	var f *v2.TextFrame
 	if performer != "" {
-		fmt.Println("Setting performer: ", performer)
+		// fmt.Println("Setting performer: ", performer)
 		tag.DeleteFrames(v2.V23CommonFrame["Artist"].Id())
 		f = v2.NewTextFrame(v2.V23FrameTypeMap[v2.V23CommonFrame["Artist"].Id()], performer)
-		fmt.Println(f.Bytes())
 		tag.AddFrames(f)
 	}
 	if title != "" {
-		fmt.Println("Setting title: ", title)
+		// fmt.Println("Setting title: ", title)
 		tag.DeleteFrames(v2.V23CommonFrame["Title"].Id())
 		f = v2.NewTextFrame(v2.V23FrameTypeMap[v2.V23CommonFrame["Title"].Id()], title)
-		fmt.Println(f.Bytes())
 		tag.AddFrames(f)
 	}
 	if year != "" {
-		fmt.Println("Setting year: ", year)
+		// fmt.Println("Setting year: ", year)
 		tag.DeleteFrames(v2.V23CommonFrame["Year"].Id())
 		f = v2.NewTextFrame(v2.V23FrameTypeMap[v2.V23CommonFrame["Year"].Id()], year)
-		fmt.Println(f.Bytes())
 		tag.AddFrames(f)
 	}
 	if album != "" {
-		fmt.Println("Setting album: ", album)
+		// fmt.Println("Setting album: ", album)
 		tag.DeleteFrames(v2.V23CommonFrame["Album"].Id())
 		tag.AddFrames(v2.NewTextFrame(v2.V23FrameTypeMap[v2.V23CommonFrame["Album"].Id()], album))
 	}
 	if trck != "" {
-		fmt.Println("Setting trck: ", trck)
+		// fmt.Println("Setting trck: ", trck)
 		tag.DeleteFrames("TRCK")
 		trckFrameType := v2.V23FrameTypeMap["TRCK"]
 		tag.AddFrames(v2.NewTextFrame(trckFrameType, trck))
@@ -61,12 +59,12 @@ func SetID3TagAPICs(tag *id3.File, apicCover []byte, apicIcon []byte) error {
 	frameType := v2.V23FrameTypeMap["APIC"]
 	mimeType := "image/jpeg"
 	if apicCover != nil {
-		fmt.Println("Setting apicCover: ", len(apicCover))
+		log.Println("Setting apicCover: ", len(apicCover))
 		apicCoverImageFrame := v2.NewImageFrame(frameType, mimeType, 3, "", apicCover) // 3 for "Cover(front)"
 		tag.AddFrames(apicCoverImageFrame)
 	}
 	if apicIcon != nil {
-		fmt.Println("Setting apicIcon: ", len(apicIcon))
+		log.Println("Setting apicIcon: ", len(apicIcon))
 		apicIconImageFrame := v2.NewImageFrame(frameType, mimeType, 2, "", apicIcon) // 2 for "Other icon"
 		tag.AddFrames(apicIconImageFrame)
 	}

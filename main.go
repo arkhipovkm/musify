@@ -11,6 +11,7 @@ import (
 
 	"github.com/arkhipovkm/id3-go"
 	"gitlab.com/arkhipovkm/go/musify/download"
+	"gitlab.com/arkhipovkm/go/musify/utils"
 	"gitlab.com/arkhipovkm/go/musify/vk"
 )
 
@@ -106,8 +107,8 @@ func testID3() {
 	if err != nil {
 		panic(err)
 	}
-	download.SetID3Tag(file, "Luna", "Jukebox", "WTF", "2020", "1/10")
-	download.SetID3TagAPICs(file, apicIcon, apicCover)
+	utils.SetID3Tag(file, "Luna", "Jukebox", "WTF", "2020", "1/10")
+	utils.SetID3TagAPICs(file, apicIcon, apicCover)
 }
 
 func testID32() {
@@ -116,7 +117,7 @@ func testID32() {
 		panic(err)
 	}
 
-	download.SetID3Tag(file, "FOO", "Название", "Альбом", "2020", "1/10")
+	utils.SetID3Tag(file, "FOO", "Название", "Альбом", "2020", "1/10")
 	fmt.Println(file.Tagger.Bytes())
 	err = file.Close()
 	if err != nil {
