@@ -48,7 +48,7 @@ func section() {
 		var trck string
 		for i, aa := range album.List {
 			if aa.AudioID == a.AudioID {
-				trck = strconv.Itoa(i) + "/" + strconv.Itoa(album.TotalCount)
+				trck = strconv.Itoa(i+1) + "/" + strconv.Itoa(album.TotalCount)
 				break
 			}
 		}
@@ -68,7 +68,13 @@ func section() {
 				apicCover = a.CoverURLp
 			}
 			query.Set("apic_cover", base64.URLEncoding.EncodeToString([]byte(apicCover)))
-			uri := "http://localhost/" + base64.URLEncoding.EncodeToString([]byte(a.URL)) + "?" + query.Encode()
+			uri := "http://localhost/" +
+				base64.URLEncoding.EncodeToString([]byte(a.URL)) +
+				"/" +
+				url.PathEscape(strings.ReplaceAll(a.Performer, "/", "|")+" — "+strings.ReplaceAll(a.Title, "/", "|")) +
+				".mp3" +
+				"?" +
+				query.Encode()
 			fmt.Println(uri, len(uri))
 		}
 	}
