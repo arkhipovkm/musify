@@ -12,6 +12,7 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/arkhipovkm/musify/utils"
 	"github.com/grafov/m3u8"
 )
 
@@ -138,7 +139,7 @@ func fetchM3U8Track(uri, path string) error {
 // HLS downloads an audio using HLS protocol. Returns audio contents []byte
 func HLS(uri string) ([]byte, error) {
 	var err error
-	path := filepath.Base(filepath.Dir(uri))
+	path := filepath.Base(filepath.Dir(uri)) + "_" + utils.RandSeq(4)
 	_ = os.Mkdir(path, os.ModePerm)
 	defer os.RemoveAll(path)
 	err = fetchM3U8Track(uri, path)
@@ -174,7 +175,7 @@ func HLS(uri string) ([]byte, error) {
 func HLSFile(uri string, filename string) (string, error) {
 	var err error
 	if filename == "" {
-		filename = filepath.Base(filepath.Dir(uri)) + ".mp3"
+		filename = filepath.Base(filepath.Dir(uri)) + "_" + utils.RandSeq(4) + ".mp3"
 	}
 	data, err := HLS(uri)
 	if err != nil {
