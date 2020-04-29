@@ -1,23 +1,39 @@
 package vk
 
 import (
+	"strings"
 	"sync"
 )
 
-func SectionQuery(query string, offset, n int, u *User) (map[string]Playlist, []*Audio, error) {
+func SectionQuery(query string, offset, n int, u *User) (map[string]*Playlist, []*Playlist, []*Audio, error) {
 	var err error
 	playlistIDs, lastPlaylist, err := alSection(query, u)
 	if err != nil {
-		return nil, nil, err
+		return nil, nil, nil, err
 	}
-	lastPlaylist.List = lastPlaylist.List[offset : offset+n]
+	if lastPlaylist == nil {
+		return nil, nil, nil, err
+	}
+	if len(lastPlaylist.List) < offset {
+		lastPlaylist.List = nil
+	} else {
+		lastPlaylist.List = lastPlaylist.List[offset:]
+	}
+
+	if len(lastPlaylist.List) > n {
+		lastPlaylist.List = lastPlaylist.List[:n]
+	}
 
 	uniquePlaylistIDs := make(map[string]bool)
 	for _, a := range lastPlaylist.List {
-		uniquePlaylistIDs[a.Album] = true
+		if a.Album != "" {
+			uniquePlaylistIDs[a.Album] = true
+		}
 	}
-	for _, plID := range playlistIDs {
-		uniquePlaylistIDs[plID] = true
+	if offset == 0 {
+		for _, plID := range playlistIDs {
+			uniquePlaylistIDs[plID] = true
+		}
 	}
 
 	ch := make(chan *Playlist, len(uniquePlaylistIDs))
@@ -29,13 +45,24 @@ func SectionQuery(query string, offset, n int, u *User) (map[string]Playlist, []
 	wg.Add(1)
 	go lastPlaylist.AcquireURLsWG(u, wg)
 
-	playlistMap := make(map[string]Playlist)
+	playlistMap := make(map[string]*Playlist)
 	m := len(uniquePlaylistIDs)
 	for i := 0; i < m; i++ {
 		pl := <-ch
-		playlistMap[pl.FullID()] = *pl
+		playlistMap[pl.FullID()] = pl
 	}
 	wg.Wait()
 	lastPlaylist.DecypherURLs(u)
-	return playlistMap, lastPlaylist.List, err
+
+	var topPlaylists []*Playlist
+	if offset == 0 {
+		for _, plID := range playlistIDs {
+			if len(strings.Split(plID, "_")) == 2 {
+				plID = plID + "_"
+			}
+			topPlaylists = append(topPlaylists, playlistMap[plID])
+		}
+	}
+
+	return playlistMap, topPlaylists, lastPlaylist.List, err
 }
