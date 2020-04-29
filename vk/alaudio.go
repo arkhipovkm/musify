@@ -22,7 +22,7 @@ import (
 
 func check(err ...interface{}) {
 	if err != nil {
-		panic(err)
+		log.Panic(err)
 	}
 }
 
@@ -104,7 +104,6 @@ func extractRawAudios(payload map[string]interface{}) ([][]interface{}, error) {
 		audio, _ := rawAudio.([]interface{})
 		rawAudios = append(rawAudios, audio)
 	}
-
 	return rawAudios, err
 }
 
@@ -227,9 +226,8 @@ func reloadAudio(ids []string, u *User, ch chan [][]interface{}) {
 	payload, err := extractPayload(body)
 	rawAudios, err := extractRawAudios(payload)
 	if err != nil {
-		log.Println("Ids:", ids, "User:", u)
-		log.Fatalln(err)
-		panic(err)
+		log.Println("Ids:", ids, "User:", u.ID)
+		log.Panic(err)
 	}
 	ch <- rawAudios
 }
@@ -239,8 +237,7 @@ func alSearch(query string, offset int, u *User, ch chan []byte) {
 	payload, err := extractPayload(body)
 	rawHTML, err := extractRawHTML(payload)
 	if err != nil {
-		log.Fatalln(err)
-		panic(err)
+		log.Panic(err)
 	}
 	ch <- rawHTML
 }
@@ -273,8 +270,11 @@ func alSection(query string, u *User) ([]string, *Playlist, error) {
 	for k := range uniquePlaylistIDs {
 		playlistIDs = append(playlistIDs, k)
 	}
-	lastPlaylist := playlists[len(playlists)-1]
-	return playlistIDs, NewPlaylist(lastPlaylist), nil
+	var lastPlaylist *Playlist
+	if len(playlists) > 0 {
+		lastPlaylist = NewPlaylist(playlists[len(playlists)-1])
+	}
+	return playlistIDs, lastPlaylist, nil
 }
 
 func acquireURLs(audioList []*Audio, u *User) error {
@@ -316,6 +316,7 @@ func acquireURLs(audioList []*Audio, u *User) error {
 	return err
 }
 
+// Playlist represents VK's audio playlist
 type Playlist struct {
 	Type           string
 	OwnerID        int
@@ -350,37 +351,39 @@ type Playlist struct {
 	NPlaysInfoStr  string
 }
 
-func (playlist *Playlist) htmlUnescape() {
-	playlist.Title = html.UnescapeString(playlist.Title)
-	playlist.Subtitle = html.UnescapeString(playlist.Subtitle)
-	playlist.Description = html.UnescapeString(playlist.Description)
-	playlist.AuthorName = html.UnescapeString(playlist.AuthorName)
-}
-
+// DecypherURLs decyphers playlist.List's audio URLs inplace.
 func (playlist *Playlist) DecypherURLs(u *User) {
 	for i := range playlist.List {
 		playlist.List[i].DecypherURL(u)
 	}
 }
 
+// AcquireURLs acquires URLs of playlist.List's audios by making *reload_audio* requests to vk's al_audio.php
+// Makes concurrent requests.
+// Might not work on large Lists of > 400 audios due to VK's throttling policy.
 func (playlist *Playlist) AcquireURLs(u *User) {
 	acquireURLs(playlist.List, u)
 }
 
+// AcquireURLsWG is the same as AcquireURLs, but with WaitGroup.Done() call in the end
+// Allows you to acquireURLs in parallel with other goroutines
 func (playlist *Playlist) AcquireURLsWG(u *User, wg *sync.WaitGroup) {
 	acquireURLs(playlist.List, u)
 	wg.Done()
 }
 
-func (playlist *Playlist) AcquireURLSChan(u *User, ch chan Playlist) {
+// AcquireURLsChan is the same as AcquireURLs, but pipes the *Playlists to channel
+func (playlist *Playlist) AcquireURLsChan(u *User, ch chan Playlist) {
 	acquireURLs(playlist.List, u)
 	ch <- *playlist
 }
 
+// FullID returns the ID of playlist in a form <OwnerID>_<ID>_<AccessHash>
 func (playlist *Playlist) FullID() string {
 	return strconv.Itoa(playlist.OwnerID) + "_" + strconv.Itoa(playlist.ID) + "_" + playlist.AccessHash
 }
 
+// NewPlaylist constructs Playlist from a raw playlist retrieved from vk's al_audio JSON responses
 func NewPlaylist(rawPlaylist map[string]interface{}) *Playlist {
 	playlist := Playlist{}
 	var ok bool
@@ -536,24 +539,22 @@ func NewPlaylist(rawPlaylist map[string]interface{}) *Playlist {
 
 	}
 
-	audioList, ok := rawPlaylist["list"].([]interface{})
-	if !ok {
-		panic("")
-	}
+	playlist.Title = html.UnescapeString(playlist.Title)
+	playlist.Subtitle = html.UnescapeString(playlist.Subtitle)
+	playlist.Description = html.UnescapeString(playlist.Description)
+	playlist.AuthorName = html.UnescapeString(playlist.AuthorName)
+	playlist.AuthorLine = html.UnescapeString(playlist.AuthorLine)
+
+	audioList, _ := rawPlaylist["list"].([]interface{})
 	for _, rawAudio := range audioList {
-		rawAudio, ok := rawAudio.([]interface{})
-		if !ok {
-			panic("")
-		}
+		rawAudio, _ := rawAudio.([]interface{})
 		playlist.List = append(playlist.List, NewAudio(rawAudio))
 	}
-	playlist.htmlUnescape()
-	for i := range playlist.List {
-		playlist.List[i].htmlUnescape()
-	}
+
 	return &playlist
 }
 
+// Audio represents VK's audio object
 type Audio struct {
 	AudioID         int
 	OwnerID         int
@@ -588,19 +589,14 @@ type Audio struct {
 	TrackCode string
 }
 
-func (audio *Audio) htmlUnescape() {
-	audio.Title = html.UnescapeString(audio.Title)
-	audio.Subtitle = html.UnescapeString(audio.Subtitle)
-	audio.Performer = html.UnescapeString(audio.Performer)
-}
-
+// DecypherURL decyphers inplace Audio's URL using caesar cypher as in VK Audioplayer
 func (audio *Audio) DecypherURL(u *User) error {
 	var err error
 	if audio.URL != "" && strings.Contains(audio.URL, "audio_api_unavailable") {
 		audio.URL, err = decypherAudioURL(audio.URL, u.ID)
 	}
 	if err != nil {
-		panic(err)
+		log.Panic(err)
 	}
 	return err
 }
@@ -724,16 +720,24 @@ func NewAudio(rawAudio []interface{}) *Audio {
 	audio.IsUMA = (flags & audioItemIndex["AUDIO_ITEM_UMA_BIT"]) != 0
 	audio.IsReplaceable = (flags & audioItemIndex["AUDIO_ITEM_REPLACEABLE"]) != 0
 
-	audio.htmlUnescape()
+	audio.Title = html.UnescapeString(audio.Title)
+	audio.Subtitle = html.UnescapeString(audio.Subtitle)
+	audio.Performer = html.UnescapeString(audio.Performer)
 
 	return &audio
 }
 
+//LoadPlaylist downloads and parses a Playlist by id.
 func LoadPlaylist(id string, u *User) *Playlist {
 	s := strings.Split(id, "_")
 	ownerID, _ := strconv.Atoi(s[0])
 	playlistID, _ := strconv.Atoi(s[1])
-	accessHash := s[2]
+	var accessHash string
+	if len(s) > 2 {
+		accessHash = s[2]
+	} else {
+		log.Println("LoadPlaylist: short ID:", id)
+	}
 	body := loadSectionPOST(ownerID, playlistID, 0, accessHash, u)
 	payload, err := extractPayload(body)
 	rawPlaylist, err := extractRawPlaylist(payload)
@@ -745,17 +749,13 @@ func LoadPlaylist(id string, u *User) *Playlist {
 	return NewPlaylist(rawPlaylist)
 }
 
+//LoadPlaylistChan is the same as LoadPlaylist, but pipes Playlist to channel
 func LoadPlaylistChan(id string, u *User, ch chan *Playlist) {
 	pl := LoadPlaylist(id, u)
 	ch <- pl
 }
 
-func LoadPlaylistChanMap(id string, u *User, chMap map[string](chan *Playlist), wg *sync.WaitGroup) {
-	pl := LoadPlaylist(id, u)
-	wg.Done()
-	chMap[id] <- pl
-}
-
+//LoadAudio downloads and parses an Audio by id
 func LoadAudio(id string, u *User) *Audio {
 	ch := make(chan [][]interface{})
 	go reloadAudio([]string{id}, u, ch)
@@ -765,14 +765,9 @@ func LoadAudio(id string, u *User) *Audio {
 	return audio
 }
 
+//LoadAudioChan is the same as LoadAudio, but pipes Audio to channel
 func LoadAudioChan(id string, u *User, ch chan *Audio, wg *sync.WaitGroup) {
 	a := LoadAudio(id, u)
 	wg.Done()
 	ch <- a
-}
-
-func LoadAudioChanMap(id string, u *User, chMap map[string](chan *Audio), wg *sync.WaitGroup) {
-	a := LoadAudio(id, u)
-	wg.Done()
-	chMap[id] <- a
 }
