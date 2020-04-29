@@ -68,13 +68,15 @@ func decypherCaesar(body string, suffix string, vector int) string {
 
 func decypherAudioURL(url string, id int) (string, error) {
 	var err error
+	var plain string
 	s0 := strings.Split(url, "extra=")
 	extra := s0[1]
 	s1 := strings.Split(extra, "#")
 	body, suffix := s1[0], s1[1]
-	plain := decypherCaesar(body, suffix, id)
+	plain = decypherCaesar(body, suffix, id)
 	if !strings.Contains(plain, "https://") {
-		return "", fmt.Errorf("Decypher URL Error. Plaintext is not URL-like: %s", plain)
+		err = fmt.Errorf("Decypher URL Error. Plaintext is not URL-like: %s", plain)
+		return plain, err
 	}
 	return plain, err
 }
