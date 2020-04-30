@@ -76,20 +76,24 @@ type User struct {
 	password string
 }
 
+// Authenticate performs the login procedure on VK using User's username and password.
+// Adds User's RemixSID and ID to the user
 func (u *User) Authenticate() error {
 	var err error
 	u.RemixSID, u.ID, err = login(u.login, u.password)
 	return err
 }
 
-func GetDefaultUser() *User {
+// NewDefaultUser creates a new User with credentials retrieved from environmental variables
+func NewDefaultUser() *User {
 	var user User
 	user.login = os.Getenv("MUSIFY_USERNAME")
 	user.password = os.Getenv("MUSIFY_PASSWORD")
 	return &user
 }
 
-func GetUser(login, password string) *User {
+// NewUser creates a new User with using credentials from arguments
+func NewUser(login, password string) *User {
 	return &User{
 		login:    login,
 		password: password,

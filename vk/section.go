@@ -5,6 +5,10 @@ import (
 	"sync"
 )
 
+// SectionQuery performs a search of playlists and audios using VK's al_audio's section method.
+// Returns a map of unique playlists, slice of top relevant playlists and an array of audios
+// according to query
+// n = limit - offset. Better to keep it small (around 20-40)
 func SectionQuery(query string, offset, n int, u *User) (map[string]*Playlist, []*Playlist, []*Audio, error) {
 	var err error
 	playlistIDs, lastPlaylist, err := alSection(query, u)
