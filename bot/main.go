@@ -17,7 +17,7 @@ import (
 	"github.com/google/uuid"
 )
 
-var vkUser *vk.User = vk.GetDefaultUser()
+var vkUser *vk.User = vk.NewDefaultUser()
 
 func vkAuthLoop() {
 	for {

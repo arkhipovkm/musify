@@ -20,10 +20,8 @@ import (
 	"golang.org/x/text/transform"
 )
 
-func check(err ...interface{}) {
-	if err != nil {
-		log.Panic(err)
-	}
+func check(k, v interface{}) {
+	log.Panic(k, v)
 }
 
 var audioItemIndex = map[string]int{
