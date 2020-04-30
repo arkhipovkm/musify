@@ -51,8 +51,10 @@ func handleError(w *http.ResponseWriter, err error) {
 func handler(w http.ResponseWriter, r *http.Request) {
 	defer func() {
 		r := recover()
-		err, _ := r.(error)
-		handleError(&w, err)
+		if r != nil {
+			err, _ := r.(error)
+			handleError(&w, err)
+		}
 	}()
 	var err error
 	base64EncodedURI := filepath.Base(filepath.Dir(r.URL.Path))
