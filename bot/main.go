@@ -263,7 +263,7 @@ func process(bot *tgbotapi.BotAPI, updates tgbotapi.UpdatesChannel) {
 
 func main() {
 
-	go authLoop()
+	go vkAuthLoop()
 
 	bot, err := tgbotapi.NewBotAPI(os.Getenv("MUSIFY_BOT_API_TOKEN"))
 	if err != nil {
