@@ -20,3 +20,5 @@
 *.jpg
 *.html
 *.json
+main.go
+*cache*
