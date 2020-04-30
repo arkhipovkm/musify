@@ -29,11 +29,11 @@ func SectionQuery(query string, offset, n int, u *User) (map[string]*Playlist, [
 	}
 
 	uniquePlaylistIDs := make(map[string]bool)
-	for _, a := range lastPlaylist.List {
-		if a.Album != "" {
-			uniquePlaylistIDs[a.Album] = true
-		}
-	}
+	// for _, a := range lastPlaylist.List {
+	// 	if a.Album != "" {
+	// 		uniquePlaylistIDs[a.Album] = true
+	// 	}
+	// }
 	if offset == 0 {
 		for _, plID := range playlistIDs {
 			uniquePlaylistIDs[plID] = true
