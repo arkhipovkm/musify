@@ -7,9 +7,11 @@ import (
 	"net/url"
 	"os"
 	"regexp"
+	"runtime"
 	"strconv"
 	"strings"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"github.com/arkhipovkm/musify/utils"
@@ -28,7 +30,7 @@ func vkAuthLoop() {
 		}
 
 		log.Printf("Authenticated on VK Account: %d\n", vkUser.ID)
-		time.Sleep(2 * time.Minute)
+		time.Sleep(12 * time.Hour)
 		utils.ClearCache(vkUser.RemixSID)
 	}
 }
@@ -94,7 +96,6 @@ func getAudioShares(albumID string, u *vk.User) (results []tgbotapi.AudioConfig,
 	for _, a := range playlist.List {
 		if a.URL != "" {
 			uri := prepareAudioStreamURI(a, playlist)
-			log.Println("URI", uri)
 			audioShare := tgbotapi.NewAudioShare(int64(0), uri)
 			audioShare.Duration = a.Duration
 			audioShare.Performer = a.Performer
@@ -265,7 +266,13 @@ func process(bot *tgbotapi.BotAPI, updates tgbotapi.UpdatesChannel) {
 					}
 					bot.Send(msg)
 				case "stats":
-					msg.Text = fmt.Sprintf("Cache writes: %d. Cache Reads: %d\nVK Errors: %d. VK Auths: %d", utils.CacheWriteAccessCounter, utils.CacheReadAccessCounter, vk.VKErrorCounter, vk.VKAuthCounter)
+					msg.Text = fmt.Sprintf("Cache writes: %d. Cache Reads: %d\nVK Requests: %d. VK Errors: %d, VK Auths: %d",
+						atomic.LoadUint64(&utils.CacheWriteAccessCounter),
+						atomic.LoadUint64(&utils.CacheReadAccessCounter),
+						atomic.LoadUint64(&vk.VKRequestCounter),
+						atomic.LoadUint64(&vk.VKErrorCounter),
+						atomic.LoadUint64(&vk.VKAuthCounter),
+					)
 					bot.Send(msg)
 				}
 			}
@@ -288,7 +295,7 @@ func main() {
 	u.Timeout = 60
 	updates, err := bot.GetUpdatesChan(u)
 
-	for w := 0; w < 4; w++ {
+	for w := 0; w < runtime.NumCPU()+2; w++ {
 		go process(bot, updates)
 	}
 
