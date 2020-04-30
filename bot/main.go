@@ -12,6 +12,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/arkhipovkm/musify/utils"
 	"github.com/arkhipovkm/musify/vk"
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api"
 	"github.com/google/uuid"
@@ -25,8 +26,10 @@ func vkAuthLoop() {
 		if err != nil {
 			log.Panic(err)
 		}
+
 		log.Printf("Authenticated on VK Account: %d\n", vkUser.ID)
-		time.Sleep(12 * time.Hour)
+		time.Sleep(2 * time.Minute)
+		utils.ClearCache(vkUser.RemixSID)
 	}
 }
 
@@ -103,11 +106,25 @@ func getAudioShares(albumID string, u *vk.User) (results []tgbotapi.AudioConfig,
 }
 
 func getAlbumInlineResults(albumID string, offset int, n int, u *vk.User) (results []interface{}, nextOffset string, err error) {
+	nextOffset = strconv.Itoa(offset + n)
 	defer func() {
 		r := recover()
 		err, _ = r.(error)
 	}()
 	playlist := vk.LoadPlaylist(albumID, u)
+
+	if len(playlist.List) < offset {
+		playlist.List = nil
+	} else {
+		playlist.List = playlist.List[offset:]
+	}
+
+	if len(playlist.List) > n {
+		playlist.List = playlist.List[:n]
+	}
+	if len(playlist.List) == 0 {
+		return
+	}
 	playlist.AcquireURLs(u)
 	playlist.DecypherURLs(u)
 	if playlist == nil {
@@ -119,15 +136,11 @@ func getAlbumInlineResults(albumID string, offset int, n int, u *vk.User) (resul
 			results = append(results, result)
 		}
 	}
-	if results != nil && len(results) >= n {
-		nextOffset = strconv.Itoa(offset + n)
-	} else {
-		nextOffset = ""
-	}
 	return results, nextOffset, err
 }
 
 func getSectionInlineResults(query string, offset, n int, u *vk.User) (results []interface{}, nextOffset string, err error) {
+	nextOffset = strconv.Itoa(offset + n)
 	defer func() {
 		r := recover()
 		err, _ = r.(error)
@@ -138,7 +151,7 @@ func getSectionInlineResults(query string, offset, n int, u *vk.User) (results [
 	}
 	for _, pl := range topPlaylists {
 		inputMessageContent := &tgbotapi.InputTextMessageContent{
-			Text:                  fmt.Sprintf("**%s** — %s ([%s](%s))", pl.AuthorName, pl.Title, pl.YearInfoStr, pl.CoverURL),
+			Text:                  fmt.Sprintf("**%s** — %s ([%s](%s))\n%d tracks. %s", pl.AuthorName, pl.Title, pl.YearInfoStr, pl.CoverURL, pl.TotalCount, pl.NPlaysInfoStr),
 			ParseMode:             "markdown",
 			DisableWebPagePreview: false,
 		}
@@ -148,7 +161,7 @@ func getSectionInlineResults(query string, offset, n int, u *vk.User) (results [
 			Type:                "article",
 			ID:                  uuid.New().String(),
 			Title:               fmt.Sprintf("%s (%s)", pl.Title, pl.YearInfoStr),
-			Description:         pl.AuthorName,
+			Description:         fmt.Sprintf("%s. %d tracks. %s", pl.AuthorName, pl.TotalCount, pl.NPlaysInfoStr),
 			ThumbURL:            pl.CoverURL,
 			InputMessageContent: inputMessageContent,
 			HideURL:             true,
@@ -176,11 +189,6 @@ func getSectionInlineResults(query string, offset, n int, u *vk.User) (results [
 			result := prepareInlineAudioResult(a, album)
 			results = append(results, result)
 		}
-	}
-	if results != nil && len(results) >= n {
-		nextOffset = strconv.Itoa(offset + n)
-	} else {
-		nextOffset = ""
 	}
 	return results, nextOffset, err
 }
@@ -214,6 +222,7 @@ func process(bot *tgbotapi.BotAPI, updates tgbotapi.UpdatesChannel) {
 					if err != nil {
 						log.Println(err)
 					}
+					// inlineQueryAnswer.CacheTime = 3600
 					bot.AnswerInlineQuery(inlineQueryAnswer)
 				} else {
 					inlineQueryAnswer.Results, inlineQueryAnswer.NextOffset, err = getSectionInlineResults(update.InlineQuery.Query, offset, 20, vkUser)
@@ -255,6 +264,9 @@ func process(bot *tgbotapi.BotAPI, updates tgbotapi.UpdatesChannel) {
 						}},
 					}
 					bot.Send(msg)
+				case "stats":
+					msg.Text = fmt.Sprintf("Cache writes: %d. Cache Reads: %d\nVK Errors: %d. VK Auths: %d", utils.CacheWriteAccessCounter, utils.CacheReadAccessCounter, vk.VKErrorCounter, vk.VKAuthCounter)
+					bot.Send(msg)
 				}
 			}
 		}
@@ -276,7 +288,7 @@ func main() {
 	u.Timeout = 60
 	updates, err := bot.GetUpdatesChan(u)
 
-	for w := 0; w < 10; w++ {
+	for w := 0; w < 4; w++ {
 		go process(bot, updates)
 	}
 
