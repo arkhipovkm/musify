@@ -10,9 +10,12 @@ import (
 	"os"
 	"regexp"
 	"strconv"
+	"sync/atomic"
 
 	"golang.org/x/net/publicsuffix"
 )
+
+var VKAuthCounter uint64
 
 //login performs a login procedure on vk.com using username and password.
 //Returns remixsid cookie value and user_id
@@ -81,6 +84,7 @@ type User struct {
 func (u *User) Authenticate() error {
 	var err error
 	u.RemixSID, u.ID, err = login(u.login, u.password)
+	atomic.AddUint64(&VKAuthCounter, 1)
 	return err
 }
 
