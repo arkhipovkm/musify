@@ -235,7 +235,7 @@ func process(bot *tgbotapi.BotAPI, updates tgbotapi.UpdatesChannel) {
 
 			}
 		} else if update.CallbackQuery != nil {
-			defer bot.AnswerCallbackQuery(tgbotapi.NewCallback(update.CallbackQuery.ID, ""))
+			bot.AnswerCallbackQuery(tgbotapi.NewCallback(update.CallbackQuery.ID, ""))
 			re := regexp.MustCompile("send-all-(.*?)$")
 			if re.MatchString(update.CallbackQuery.Data) {
 				subm := re.FindStringSubmatch(update.CallbackQuery.Data)
