@@ -49,6 +49,11 @@ func handleError(w *http.ResponseWriter, err error) {
 }
 
 func handler(w http.ResponseWriter, r *http.Request) {
+	defer func() {
+		r := recover()
+		err, _ := r.(error)
+		handleError(&w, err)
+	}()
 	var err error
 	base64EncodedURI := filepath.Base(filepath.Dir(r.URL.Path))
 	log.Println(base64EncodedURI)
@@ -79,6 +84,9 @@ func handler(w http.ResponseWriter, r *http.Request) {
 		}
 		log.Println("Cover URI:", apicCoverURI)
 		go httpGETChan(apicCoverURI, dataChan, errChan)
+	} else {
+		errChan <- nil
+		dataChan <- nil
 	}
 	if base64EncodedApicIconURI != "" {
 		apicIconURI, err := decodeBase64URI(base64EncodedApicIconURI)
@@ -88,6 +96,9 @@ func handler(w http.ResponseWriter, r *http.Request) {
 		}
 		log.Println("Icon URI:", apicIconURI)
 		go httpGETChan(apicIconURI, dataChan, errChan)
+	} else {
+		errChan <- nil
+		dataChan <- nil
 	}
 
 	for i := 0; i < 2; i++ {
