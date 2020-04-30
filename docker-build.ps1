@@ -1,2 +1,2 @@
-docker build -t go-musify-bot -f Bot.Dockerfile .
-docker build -t go-musify-streamer -f Streamer.Dockerfile .
+docker build -t arkhipovkm/musify-bot -f Bot.Dockerfile .
+docker build -t arkhipovkm/musify-streamer -f Streamer.Dockerfile .

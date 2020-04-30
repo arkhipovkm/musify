@@ -1,1 +1,1 @@
-docker run -p 80:80 go-musify-streamer
+docker run -p 80:80 arkhipovkm/musify-streamer
