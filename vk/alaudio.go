@@ -25,6 +25,7 @@ import (
 )
 
 var VKErrorCounter uint64
+var VKRequestCounter uint64
 
 func check(k, v interface{}) {
 	log.Panic(k, v)
@@ -69,13 +70,15 @@ func checkVKError(outerArray []interface{}) error {
 		vkErrI, _ := strconv.Atoi(vkErr)
 		if vkErrI > 0 {
 			err = fmt.Errorf("VK Error : %d", vkErrI)
+			atomic.AddUint64(&VKErrorCounter, 1)
 		}
 	case int:
 		if vkErr > 0 {
 			err = fmt.Errorf("VK Error: %d", vkErr)
+			atomic.AddUint64(&VKErrorCounter, 1)
 		}
 	}
-	atomic.AddUint64(&VKErrorCounter, 1)
+	atomic.AddUint64(&VKRequestCounter, 1)
 	return err
 }
 
