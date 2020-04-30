@@ -57,5 +57,7 @@ func WriteCache(filename string, obj interface{}) error {
 }
 
 func ClearCache(remixSID string) {
+	atomic.AddUint64(&CacheWriteAccessCounter, -atomic.LoadUint64(&CacheWriteAccessCounter))
+	atomic.AddUint64(&CacheReadAccessCounter, -atomic.LoadUint64(&CacheReadAccessCounter))
 	_ = os.RemoveAll(filepath.Join("cache", remixSID))
 }
