@@ -10,15 +10,21 @@ import (
 	"net/http"
 	"net/http/cookiejar"
 	"net/url"
+	"os"
+	"path/filepath"
 	"regexp"
 	"strconv"
 	"strings"
 	"sync"
+	"sync/atomic"
 
+	"github.com/arkhipovkm/musify/utils"
 	"golang.org/x/net/publicsuffix"
 	"golang.org/x/text/encoding/charmap"
 	"golang.org/x/text/transform"
 )
+
+var VKErrorCounter uint64
 
 func check(k, v interface{}) {
 	log.Panic(k, v)
@@ -63,14 +69,13 @@ func checkVKError(outerArray []interface{}) error {
 		vkErrI, _ := strconv.Atoi(vkErr)
 		if vkErrI > 0 {
 			err = fmt.Errorf("VK Error : %d", vkErrI)
-			return err
 		}
 	case int:
 		if vkErr > 0 {
 			err = fmt.Errorf("VK Error: %d", vkErr)
-			return err
 		}
 	}
+	atomic.AddUint64(&VKErrorCounter, 1)
 	return err
 }
 
@@ -115,6 +120,11 @@ func extractRawPlaylist(payload map[string]interface{}) (map[string]interface{},
 		return nil, err
 	}
 	innerArray, _ := outerArray[1].([]interface{})
+	if len(innerArray) == 0 {
+		err = fmt.Errorf("VK Error: loadAudio response with no playlist: %s", payload)
+		atomic.AddUint64(&VKErrorCounter, 1)
+		return rawPlaylist, err
+	}
 	rawPlaylist, _ = innerArray[0].(map[string]interface{})
 	return rawPlaylist, err
 }
@@ -224,8 +234,8 @@ func reloadAudio(ids []string, u *User, ch chan [][]interface{}) {
 	payload, err := extractPayload(body)
 	rawAudios, err := extractRawAudios(payload)
 	if err != nil {
-		log.Println("Ids:", ids, "User:", u.ID)
-		log.Panic(err)
+		log.Println("Reload Audio Error. Ids:", ids)
+		log.Println(err)
 	}
 	ch <- rawAudios
 }
@@ -235,7 +245,7 @@ func alSearch(query string, offset int, u *User, ch chan []byte) {
 	payload, err := extractPayload(body)
 	rawHTML, err := extractRawHTML(payload)
 	if err != nil {
-		log.Panic(err)
+		log.Println(err)
 	}
 	ch <- rawHTML
 }
@@ -278,9 +288,21 @@ func alSection(query string, u *User) ([]string, *Playlist, error) {
 func acquireURLs(audioList []*Audio, u *User) error {
 	var err error
 	var audioIds []string
+	_ = os.MkdirAll(filepath.Join("cache", u.RemixSID, "audios"), os.ModePerm)
 	for _, audio := range audioList {
-		reloadID := fmt.Sprintf("%d_%d_%s_%s", audio.OwnerID, audio.AudioID, audio.ActionHash, audio.URLHash)
-		audioIds = append(audioIds, reloadID)
+		if audio.URL == "" {
+			filename := filepath.Join("cache", u.RemixSID, "audios", fmt.Sprintf("%d_%d", audio.OwnerID, audio.AudioID))
+			err = utils.ReadCache(filename, audio)
+			if err != nil {
+				continue
+			}
+		}
+	}
+	for _, audio := range audioList {
+		if audio.URL == "" && audio.ActionHash != "" && audio.URLHash != "" {
+			reloadID := fmt.Sprintf("%d_%d_%s_%s", audio.OwnerID, audio.AudioID, audio.ActionHash, audio.URLHash)
+			audioIds = append(audioIds, reloadID)
+		}
 	}
 	var chunks [][]string
 	chunkSize := 10
@@ -310,6 +332,11 @@ func acquireURLs(audioList []*Audio, u *User) error {
 			audioID := int(audioIDf)
 			audioIndex[audioID].URL = audioURL
 		}
+	}
+	for _, audio := range audioList {
+		fullID := fmt.Sprintf("%d_%d", audio.OwnerID, audio.AudioID)
+		filename := filepath.Join("cache", u.RemixSID, "audios", fullID)
+		_ = utils.WriteCache(filename, audio)
 	}
 	return err
 }
@@ -727,6 +754,8 @@ func NewAudio(rawAudio []interface{}) *Audio {
 
 //LoadPlaylist downloads and parses a Playlist by id.
 func LoadPlaylist(id string, u *User) *Playlist {
+	var err error
+	playlist := new(Playlist)
 	s := strings.Split(id, "_")
 	ownerID, _ := strconv.Atoi(s[0])
 	playlistID, _ := strconv.Atoi(s[1])
@@ -736,15 +765,24 @@ func LoadPlaylist(id string, u *User) *Playlist {
 	} else {
 		log.Println("LoadPlaylist: short ID:", id)
 	}
+	_ = os.MkdirAll(filepath.Join("cache", u.RemixSID, "playlists"), os.ModePerm)
+	filename := filepath.Join("cache", u.RemixSID, "playlists", fmt.Sprintf("%d_%d", ownerID, playlistID))
+	err = utils.ReadCache(filename, playlist)
+	if err == nil {
+		return playlist
+	}
+
 	body := loadSectionPOST(ownerID, playlistID, 0, accessHash, u)
 	payload, err := extractPayload(body)
 	rawPlaylist, err := extractRawPlaylist(payload)
 	if err != nil {
-		log.Println("Id:", id, "User:", u)
+		log.Println("Load Playlist Error. Id:", id)
 		log.Println(err)
-		return new(Playlist)
+		return playlist
 	}
-	return NewPlaylist(rawPlaylist)
+	playlist = NewPlaylist(rawPlaylist)
+	_ = utils.WriteCache(filename, playlist)
+	return playlist
 }
 
 //LoadPlaylistChan is the same as LoadPlaylist, but pipes Playlist to channel
