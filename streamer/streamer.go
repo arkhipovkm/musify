@@ -1,4 +1,4 @@
-package main
+package streamer
 
 import (
 	"encoding/base64"
@@ -165,7 +165,7 @@ func handler(w http.ResponseWriter, r *http.Request) {
 	return
 }
 
-func main() {
+func Streamer() {
 	http.HandleFunc("/", handler)
 	iface := ":80"
 	log.Printf("Serving on %s\n", iface)

@@ -1,4 +1,4 @@
-package main
+package bot
 
 import (
 	"encoding/base64"
@@ -62,7 +62,8 @@ func prepareAudioStreamURI(a *vk.Audio, album *vk.Playlist) string {
 	}
 	query.Set("apic_cover", base64.URLEncoding.EncodeToString([]byte(apicCover)))
 	return fmt.Sprintf(
-		"http://stream.musifybot.com/%s/%s.mp3?%s",
+		"http://%s.herokuapp.com/%s/%s.mp3?%s",
+		os.Getenv("HEROKU_APP_NAME"),
 		base64.URLEncoding.EncodeToString([]byte(a.URL)),
 		url.PathEscape(strings.ReplaceAll(a.Performer, "/", "|")+" — "+strings.ReplaceAll(a.Title, "/", "|")),
 		query.Encode(),
@@ -280,11 +281,11 @@ func process(bot *tgbotapi.BotAPI, updates tgbotapi.UpdatesChannel) {
 	}
 }
 
-func main() {
+func Bot() {
 
 	go vkAuthLoop()
 
-	bot, err := tgbotapi.NewBotAPI(os.Getenv("MUSIFY_BOT_API_TOKEN"))
+	bot, err := tgbotapi.NewBotAPI(os.Getenv("TELEGRAM_BOT_API_TOKEN"))
 	if err != nil {
 		log.Panic(err)
 	}
