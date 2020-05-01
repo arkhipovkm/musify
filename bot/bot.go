@@ -10,7 +10,6 @@ import (
 	"runtime"
 	"strconv"
 	"strings"
-	"sync"
 	"sync/atomic"
 	"time"
 
@@ -308,15 +307,20 @@ func Bot() {
 	bot.Debug = false
 	log.Printf("Authenticated on Telegram Bot account %s", bot.Self.UserName)
 
-	u := tgbotapi.NewUpdate(0)
-	u.Timeout = 60
-	updates, err := bot.GetUpdatesChan(u)
+	_, err = bot.SetWebhook(tgbotapi.NewWebhook(fmt.Sprintf("https://%s.herokuapp.com", os.Getenv("HEROKU_APP_NAME"))))
+	if err != nil {
+		log.Fatal(err)
+	}
+	info, err := bot.GetWebhookInfo()
+	if err != nil {
+		log.Fatal(err)
+	}
+	if info.LastErrorDate != 0 {
+		log.Printf("Telegram callback failed: %s", info.LastErrorMessage)
+	}
+	updates := bot.ListenForWebhook("/" + bot.Token)
 
 	for w := 0; w < runtime.NumCPU()+2; w++ {
 		go process(bot, updates)
 	}
-
-	wg := &sync.WaitGroup{}
-	wg.Add(1)
-	wg.Wait()
 }

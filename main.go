@@ -1,6 +1,8 @@
 package main
 
 import (
+	"log"
+	"net/http"
 	"os"
 
 	"github.com/arkhipovkm/musify/bot"
@@ -24,6 +26,11 @@ func main() {
 	if vkPassword == "" {
 		panic("No VK Password")
 	}
+
 	go streamer.Streamer()
-	bot.Bot()
+	go bot.Bot()
+
+	iface := ":" + os.Getenv("PORT")
+	log.Printf("Serving on %s\n", iface)
+	log.Fatal(http.ListenAndServe(iface, nil))
 }
