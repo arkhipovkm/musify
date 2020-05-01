@@ -91,8 +91,8 @@ func (u *User) Authenticate() error {
 // NewDefaultUser creates a new User with credentials retrieved from environmental variables
 func NewDefaultUser() *User {
 	var user User
-	user.login = os.Getenv("MUSIFY_USERNAME")
-	user.password = os.Getenv("MUSIFY_PASSWORD")
+	user.login = os.Getenv("VK_USERNAME")
+	user.password = os.Getenv("VK_PASSWORD")
 	return &user
 }
 

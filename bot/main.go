@@ -284,7 +284,7 @@ func main() {
 
 	go vkAuthLoop()
 
-	bot, err := tgbotapi.NewBotAPI(os.Getenv("MUSIFY_BOT_API_TOKEN"))
+	bot, err := tgbotapi.NewBotAPI(os.Getenv("TELEGRAM_BOT_API_TOKEN"))
 	if err != nil {
 		log.Panic(err)
 	}
