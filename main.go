@@ -28,7 +28,7 @@ func main() {
 	}
 
 	go streamer.Streamer()
-	go bot.Bot()
+	bot.Bot()
 
 	iface := ":" + os.Getenv("PORT")
 	log.Printf("Serving on %s\n", iface)
