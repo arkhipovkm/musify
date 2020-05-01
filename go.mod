@@ -1,7 +1,7 @@
 module github.com/arkhipovkm/musify
 
 go 1.14
-
+// +heroku goVersion go1.14
 require (
 	github.com/arkhipovkm/id3-go v0.0.0-20200427115145-3af349cca3cf
 	github.com/go-telegram-bot-api/telegram-bot-api v4.6.4+incompatible
