@@ -8,6 +8,6 @@ require (
 	github.com/google/uuid v1.1.1
 	github.com/grafov/m3u8 v0.11.1
 	github.com/technoweenie/multipartstreamer v1.0.1 // indirect
-	golang.org/x/net v0.0.0-20200425230154-ff2c4b7c35a0
+	golang.org/x/net v0.0.0-20200501053045-e0ff5e5a1de5
 	golang.org/x/text v0.3.2
 )
