@@ -307,7 +307,7 @@ func Bot() {
 	bot.Debug = false
 	log.Printf("Authenticated on Telegram Bot account %s", bot.Self.UserName)
 
-	_, err = bot.SetWebhook(tgbotapi.NewWebhook(fmt.Sprintf("https://%s.herokuapp.com", os.Getenv("HEROKU_APP_NAME"))))
+	_, err = bot.SetWebhook(tgbotapi.NewWebhook(fmt.Sprintf("https://%s.herokuapp.com/%s", os.Getenv("HEROKU_APP_NAME"), bot.Token)))
 	if err != nil {
 		log.Fatal(err)
 	}
