@@ -57,7 +57,8 @@ func handler(w http.ResponseWriter, r *http.Request) {
 		}
 	}()
 	var err error
-	base64EncodedURI := filepath.Base(filepath.Dir(r.URL.Path))
+	path := strings.Split(r.URL.Path, "/streamer/")[1]
+	base64EncodedURI := filepath.Base(filepath.Dir(path))
 	log.Println(base64EncodedURI)
 	decodedURI, err := decodeBase64URI(base64EncodedURI)
 	if err != nil {
@@ -166,5 +167,5 @@ func handler(w http.ResponseWriter, r *http.Request) {
 }
 
 func Streamer() {
-	http.HandleFunc("/", handler)
+	http.HandleFunc("/streamer/", handler)
 }

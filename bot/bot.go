@@ -62,7 +62,7 @@ func prepareAudioStreamURI(a *vk.Audio, album *vk.Playlist) string {
 	}
 	query.Set("apic_cover", base64.URLEncoding.EncodeToString([]byte(apicCover)))
 	return fmt.Sprintf(
-		"http://%s.herokuapp.com/%s/%s.mp3?%s",
+		"http://%s.herokuapp.com/streamer/%s/%s.mp3?%s",
 		os.Getenv("HEROKU_APP_NAME"),
 		base64.URLEncoding.EncodeToString([]byte(a.URL)),
 		url.PathEscape(strings.ReplaceAll(a.Performer, "/", "|")+" — "+strings.ReplaceAll(a.Title, "/", "|")),
