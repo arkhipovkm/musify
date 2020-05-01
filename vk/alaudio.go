@@ -377,6 +377,7 @@ type Playlist struct {
 	YearInfoStr    string
 	GenreInfoStr   string
 	NPlaysInfoStr  string
+	NTracksInfoStr string
 }
 
 // DecypherURLs decyphers playlist.List's audio URLs inplace.
@@ -560,6 +561,7 @@ func NewPlaylist(rawPlaylist map[string]interface{}) *Playlist {
 			if strings.Contains(V, "<span class=\"dvd\"></span>") {
 				re := regexp.MustCompile("(.*?)<span class=\"dvd\"></span>(.*?)$")
 				subm := re.FindAllStringSubmatch(V, -1)
+				playlist.NTracksInfoStr = subm[0][0]
 				playlist.NPlaysInfoStr = subm[0][1]
 			}
 			playlist.InfoLine2 = V

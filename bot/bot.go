@@ -20,6 +20,7 @@ import (
 	"github.com/google/uuid"
 )
 
+var N_RESULTS int = 10
 var vkUser *vk.User = vk.NewDefaultUser()
 
 func vkAuthLoop() {
@@ -153,7 +154,7 @@ func getSectionInlineResults(query string, offset, n int, u *vk.User) (results [
 	}
 	for _, pl := range topPlaylists {
 		inputMessageContent := &tgbotapi.InputTextMessageContent{
-			Text:                  fmt.Sprintf("**%s** — %s ([%s](%s))\n%d tracks. %s", pl.AuthorName, pl.Title, pl.YearInfoStr, pl.CoverURL, pl.TotalCount, pl.NPlaysInfoStr),
+			Text:                  fmt.Sprintf("%s — %s\n%s - %s - %s[.](%s)", pl.Title, pl.AuthorName, pl.YearInfoStr, pl.NTracksInfoStr, pl.NPlaysInfoStr, pl.CoverURL),
 			ParseMode:             "markdown",
 			DisableWebPagePreview: false,
 		}
@@ -162,8 +163,8 @@ func getSectionInlineResults(query string, offset, n int, u *vk.User) (results [
 		results = append(results, &tgbotapi.InlineQueryResultArticle{
 			Type:                "article",
 			ID:                  uuid.New().String(),
-			Title:               fmt.Sprintf("%s (%s)", pl.Title, pl.YearInfoStr),
-			Description:         fmt.Sprintf("%s. %d tracks. %s", pl.AuthorName, pl.TotalCount, pl.NPlaysInfoStr),
+			Title:               fmt.Sprintf("%s — %s", pl.Title, pl.AuthorName),
+			Description:         fmt.Sprintf("%s - %s - %s", pl.YearInfoStr, pl.NTracksInfoStr, pl.NPlaysInfoStr),
 			ThumbURL:            pl.CoverURL,
 			InputMessageContent: inputMessageContent,
 			HideURL:             true,
@@ -220,14 +221,14 @@ func process(bot *tgbotapi.BotAPI, updates tgbotapi.UpdatesChannel) {
 				if re.MatchString(update.InlineQuery.Query) {
 					subm := re.FindStringSubmatch(update.InlineQuery.Query)
 					albumID := subm[1]
-					inlineQueryAnswer.Results, inlineQueryAnswer.NextOffset, err = getAlbumInlineResults(albumID, offset, 20, vkUser)
+					inlineQueryAnswer.Results, inlineQueryAnswer.NextOffset, err = getAlbumInlineResults(albumID, offset, N_RESULTS, vkUser)
 					if err != nil {
 						log.Println(err)
 					}
 					// inlineQueryAnswer.CacheTime = 3600
 					bot.AnswerInlineQuery(inlineQueryAnswer)
 				} else {
-					inlineQueryAnswer.Results, inlineQueryAnswer.NextOffset, err = getSectionInlineResults(update.InlineQuery.Query, offset, 20, vkUser)
+					inlineQueryAnswer.Results, inlineQueryAnswer.NextOffset, err = getSectionInlineResults(update.InlineQuery.Query, offset, N_RESULTS, vkUser)
 					if err != nil {
 						log.Println(err)
 					}
