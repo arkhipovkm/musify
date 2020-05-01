@@ -156,7 +156,7 @@ func getSectionInlineResults(query string, offset, n int, u *vk.User) (results [
 		title := fmt.Sprintf("%s — %s", pl.Title, pl.AuthorName)
 		var description string
 		if pl.YearInfoStr != "" {
-			description = description + " - " + pl.YearInfoStr
+			description = description + pl.YearInfoStr
 		}
 		if pl.NTracksInfoStr != "" {
 			description = description + " - " + pl.NTracksInfoStr
@@ -166,7 +166,7 @@ func getSectionInlineResults(query string, offset, n int, u *vk.User) (results [
 		}
 		var coverSuffix string
 		if pl.CoverURL != "" {
-			coverSuffix = fmt.Sprintf("[&nbsp;](%s)", pl.CoverURL)
+			coverSuffix = fmt.Sprintf("[.](%s)", pl.CoverURL)
 		}
 		inputMessageContent := &tgbotapi.InputTextMessageContent{
 			Text:                  title + "\n" + description + coverSuffix,
