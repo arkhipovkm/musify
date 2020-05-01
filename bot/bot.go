@@ -153,8 +153,23 @@ func getSectionInlineResults(query string, offset, n int, u *vk.User) (results [
 		return results, nextOffset, err
 	}
 	for _, pl := range topPlaylists {
+		title := fmt.Sprintf("%s — %s", pl.Title, pl.AuthorName)
+		var description string
+		if pl.YearInfoStr != "" {
+			description = description + " - " + pl.YearInfoStr
+		}
+		if pl.NTracksInfoStr != "" {
+			description = description + " - " + pl.NTracksInfoStr
+		}
+		if pl.NPlaysInfoStr != "" {
+			description = description + " - " + pl.NPlaysInfoStr
+		}
+		var coverSuffix string
+		if pl.CoverURL != "" {
+			coverSuffix = fmt.Sprintf("[&nbsp;](%s)", pl.CoverURL)
+		}
 		inputMessageContent := &tgbotapi.InputTextMessageContent{
-			Text:                  fmt.Sprintf("%s — %s\n%s - %s - %s[.](%s)", pl.Title, pl.AuthorName, pl.YearInfoStr, pl.NTracksInfoStr, pl.NPlaysInfoStr, pl.CoverURL),
+			Text:                  title + "\n" + description + coverSuffix,
 			ParseMode:             "markdown",
 			DisableWebPagePreview: false,
 		}
@@ -163,8 +178,8 @@ func getSectionInlineResults(query string, offset, n int, u *vk.User) (results [
 		results = append(results, &tgbotapi.InlineQueryResultArticle{
 			Type:                "article",
 			ID:                  uuid.New().String(),
-			Title:               fmt.Sprintf("%s — %s", pl.Title, pl.AuthorName),
-			Description:         fmt.Sprintf("%s - %s - %s", pl.YearInfoStr, pl.NTracksInfoStr, pl.NPlaysInfoStr),
+			Title:               title,
+			Description:         description,
 			ThumbURL:            pl.CoverURL,
 			InputMessageContent: inputMessageContent,
 			HideURL:             true,
