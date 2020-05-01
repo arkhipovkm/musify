@@ -167,7 +167,7 @@ func handler(w http.ResponseWriter, r *http.Request) {
 
 func Streamer() {
 	http.HandleFunc("/", handler)
-	iface := ":80"
+	iface := ":" + os.Getenv("PORT")
 	log.Printf("Serving on %s\n", iface)
 	log.Fatal(http.ListenAndServe(iface, nil))
 }
