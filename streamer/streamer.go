@@ -9,6 +9,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"time"
 
 	"github.com/arkhipovkm/id3-go"
 	"github.com/arkhipovkm/musify/download"
@@ -49,6 +50,7 @@ func handleError(w *http.ResponseWriter, err error) {
 }
 
 func handler(w http.ResponseWriter, r *http.Request) {
+	t0 := time.Now()
 	defer func() {
 		r := recover()
 		if r != nil {
@@ -59,13 +61,11 @@ func handler(w http.ResponseWriter, r *http.Request) {
 	var err error
 	path := strings.Split(r.URL.Path, "/streamer/")[1]
 	base64EncodedURI := filepath.Base(filepath.Dir(path))
-	log.Println(base64EncodedURI)
 	decodedURI, err := decodeBase64URI(base64EncodedURI)
 	if err != nil {
 		handleError(&w, err)
 		return
 	}
-	log.Println("Received an audio to stream: ", decodedURI)
 	query := r.URL.Query()
 	log.Println("Query:", query)
 	performer := query.Get("performer")
@@ -85,7 +85,6 @@ func handler(w http.ResponseWriter, r *http.Request) {
 			handleError(&w, err)
 			return
 		}
-		log.Println("Cover URI:", apicCoverURI)
 		go httpGETChan(apicCoverURI, dataChan, errChan)
 	} else {
 		errChan <- nil
@@ -97,7 +96,6 @@ func handler(w http.ResponseWriter, r *http.Request) {
 			handleError(&w, err)
 			return
 		}
-		log.Println("Icon URI:", apicIconURI)
 		go httpGETChan(apicIconURI, dataChan, errChan)
 	} else {
 		errChan <- nil
@@ -122,8 +120,10 @@ func handler(w http.ResponseWriter, r *http.Request) {
 		apicCoverData = apic0
 		apicIconData = apic1
 	}
-	log.Println("Cover Data len:", len(apicCoverData))
-	log.Println("Icon Data len:", len(apicIconData))
+
+	t1 := time.Now()
+	log.Printf("Request prepared in: %.1f ms\n", float64(t1.UnixNano()-t0.UnixNano())/float64(1e6))
+
 	var filename string
 	if strings.Contains(decodedURI, ".m3u8") {
 		filename, err = download.HLSFile(string(decodedURI), "")
@@ -139,6 +139,10 @@ func handler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	defer os.Remove(filename)
+
+	t2 := time.Now()
+	log.Printf("Fetched audio in: %.1f ms\n", float64(t2.UnixNano()-t1.UnixNano())/float64(1e6))
+
 	id3File, err := id3.Open(filename)
 	if err != nil {
 		id3File.Close()
@@ -149,6 +153,11 @@ func handler(w http.ResponseWriter, r *http.Request) {
 		}
 		w.Header().Add("Content-Type", "audio/mpeg")
 		w.Write(fileData)
+
+		t4 := time.Now()
+		log.Printf("Request fulfilled in: %.1f ms\n", float64(t4.UnixNano()-t0.UnixNano())/float64(1e6))
+
+		log.Println("OK")
 		return
 	}
 	defer id3File.Close()
@@ -160,8 +169,16 @@ func handler(w http.ResponseWriter, r *http.Request) {
 		handleError(&w, err)
 		return
 	}
+
+	t3 := time.Now()
+	log.Printf("ID3 in: %.1f ms\n", float64(t3.UnixNano()-t2.UnixNano())/float64(1e6))
+
 	w.Header().Add("Content-Type", "audio/mpeg")
 	w.Write(fileData)
+
+	t4 := time.Now()
+	log.Printf("Request fulfilled in: %.1f ms\n", float64(t4.UnixNano()-t0.UnixNano())/float64(1e6))
+
 	log.Println("OK")
 	return
 }
