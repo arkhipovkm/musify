@@ -172,18 +172,20 @@ func HLS(uri string) ([]byte, error) {
 }
 
 // HLSFile downloads an audio file using HLS protocol and writes the result into file
-func HLSFile(uri string, filename string) (string, error) {
+func HLSFile(uri string, filename string) (string, int, error) {
 	var err error
+	var n int
 	if filename == "" {
 		filename = filepath.Base(filepath.Dir(uri)) + "_" + utils.RandSeq(4) + ".mp3"
 	}
 	data, err := HLS(uri)
 	if err != nil {
-		return filename, err
+		return filename, n, err
 	}
+	n = len(data)
 	err = ioutil.WriteFile(filename, data, os.ModePerm)
 	if err != nil {
-		return filename, err
+		return filename, n, err
 	}
-	return filename, err
+	return filename, n, err
 }
