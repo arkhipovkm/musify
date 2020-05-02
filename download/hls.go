@@ -12,6 +12,7 @@ import (
 	"os/exec"
 	"path/filepath"
 	"strings"
+	"time"
 
 	"github.com/arkhipovkm/musify/utils"
 	"github.com/grafov/m3u8"
@@ -34,27 +35,32 @@ func httpFetch(uri string) ([]byte, error) {
 	return body, nil
 }
 
-func fetchM3U8Playlist(url string) (*m3u8.MediaPlaylist, string, error) {
+func fetchM3U8Playlist(uri string) (*m3u8.MediaPlaylist, string, error) {
 	var err error
-	resp, err := http.Get(url)
+	client := &http.Client{
+		CheckRedirect: func(req *http.Request, via []*http.Request) error {
+			return http.ErrUseLastResponse
+		},
+	}
+	resp, err := client.Get(uri)
 	if err != nil {
-		return nil, url, err
+		return nil, uri, err
 	}
 	defer resp.Body.Close()
 	if resp.StatusCode == 302 {
 		redirectURL, err := resp.Location()
 		if err != nil {
-			return nil, url, err
+			return nil, uri, err
 		}
-		log.Printf("Redirect on fetchM3U8Playlist: %s. Location: \n", resp.Status)
+		log.Printf("Redirect on fetchM3U8Playlist: %s\n", resp.Status)
 		return fetchM3U8Playlist(redirectURL.String())
 	}
 	p, _, err := m3u8.DecodeFrom(resp.Body, false)
 	if err != nil {
-		return nil, url, err
+		return nil, uri, err
 	}
 	playlist := p.(*m3u8.MediaPlaylist)
-	return playlist, url, err
+	return playlist, uri, err
 }
 
 func fetchM3U8Segment(key, iv []byte, uri, path string, errChan chan error) {
@@ -148,6 +154,7 @@ func HLS(uri string) ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
+	t0 := time.Now()
 	out, err := exec.Command(
 		"ffmpeg",
 		"-hide_banner",
@@ -170,6 +177,10 @@ func HLS(uri string) ([]byte, error) {
 		err = errors.New("ffmpeg: " + err.Error())
 		return nil, err
 	}
+
+	t1 := time.Now()
+	log.Printf("FFmpeg concat demuxer completed in %.1f ms\n", float64(t1.UnixNano()-t0.UnixNano())/float64(1e6))
+
 	return out, nil
 }
 
