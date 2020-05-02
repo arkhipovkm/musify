@@ -24,22 +24,22 @@ func MP3(url string) ([]byte, error) {
 // MP3File downloads an audio and writes it to a file
 func MP3File(uri, filename string) (string, int, error) {
 	var err error
-	var n int
+	var n int64
 	if filename == "" {
 		filename = filepath.Base(filepath.Dir(uri)) + "_" + utils.RandSeq(4) + ".mp3"
 	}
 	resp, err := http.Get(uri)
 	if err != nil {
-		return filename, n, err
+		return filename, int(n), err
 	}
 	defer resp.Body.Close()
 
 	file, err := os.Create(filename)
 	if err != nil {
-		return filename, n, err
+		return filename, int(n), err
 	}
 	defer file.Close()
 
 	n, err = io.Copy(file, resp.Body)
-	return filename, n, err
+	return filename, int(n), err
 }
