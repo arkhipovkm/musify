@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"io/ioutil"
+	"log"
 	"net/http"
 	"os"
 	"os/exec"
@@ -33,26 +34,27 @@ func httpFetch(uri string) ([]byte, error) {
 	return body, nil
 }
 
-func fetchM3U8Playlist(url string) (*m3u8.MediaPlaylist, error) {
+func fetchM3U8Playlist(url string) (*m3u8.MediaPlaylist, string, error) {
 	var err error
 	resp, err := http.Get(url)
 	if err != nil {
-		return nil, err
+		return nil, url, err
 	}
+	defer resp.Body.Close()
 	if resp.StatusCode == 302 {
 		redirectURL, err := resp.Location()
 		if err != nil {
-			return nil, err
+			return nil, url, err
 		}
+		log.Printf("Redirect on fetchM3U8Playlist: %s. Location: \n", resp.Status)
 		return fetchM3U8Playlist(redirectURL.String())
 	}
-	defer resp.Body.Close()
 	p, _, err := m3u8.DecodeFrom(resp.Body, false)
-	playlist := p.(*m3u8.MediaPlaylist)
 	if err != nil {
-		return nil, err
+		return nil, url, err
 	}
-	return playlist, err
+	playlist := p.(*m3u8.MediaPlaylist)
+	return playlist, url, err
 }
 
 func fetchM3U8Segment(key, iv []byte, uri, path string, errChan chan error) {
@@ -92,7 +94,7 @@ func fetchM3U8Track(uri, path string) error {
 
 	keySet := make(map[string]bool)
 	keyValues := make(map[string][]byte)
-	mediapl, err := fetchM3U8Playlist(uri)
+	mediapl, uri, err := fetchM3U8Playlist(uri)
 	if err != nil {
 		return err
 	}
