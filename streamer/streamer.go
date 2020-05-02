@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"regexp"
 	"strings"
 	"time"
 
@@ -108,7 +109,9 @@ func handler(w http.ResponseWriter, r *http.Request) {
 	var filename string
 	var n int
 	if strings.Contains(decodedURI, ".m3u8") {
-		filename, n, err = download.HLSFile(string(decodedURI), "")
+		re := regexp.MustCompile("/[0-9a-f]+(/audios)?/([0-9a-f]+)/index.m3u8")
+		re.ReplaceAllString(decodedURI, "$1/$2.mp3")
+		filename, n, err = download.MP3File(string(decodedURI), "")
 	} else if strings.Contains(decodedURI, ".mp3") {
 		filename, n, err = download.MP3File(string(decodedURI), "")
 	} else {
