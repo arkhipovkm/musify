@@ -172,7 +172,13 @@ func getSectionInlineResults(query string, offset, n int, u *vk.User) (results [
 			ParseMode:             "markdown",
 			DisableWebPagePreview: false,
 		}
-		switchInlineQuery := ":album " + pl.FullID()
+		var id string
+		if pl.OwnerID != 0 && pl.ID != 0 && pl.FullID()[:5] == "-2000" {
+			id = utils.Itoa50(pl.ID)
+		} else {
+			id = pl.FullID()
+		}
+		switchInlineQuery := ":album " + id
 		callBackData := "send-all-" + pl.FullID()
 		results = append(results, &tgbotapi.InlineQueryResultArticle{
 			Type:                "article",
@@ -235,6 +241,10 @@ func process(bot *tgbotapi.BotAPI, updates tgbotapi.UpdatesChannel) {
 				if re.MatchString(update.InlineQuery.Query) {
 					subm := re.FindStringSubmatch(update.InlineQuery.Query)
 					albumID := subm[1]
+					if albumID[:5] != "-2000" {
+						decimalID := strconv.Itoa(utils.Atoi50(albumID))
+						albumID = "-2000" + decimalID + "_" + decimalID
+					}
 					inlineQueryAnswer.Results, inlineQueryAnswer.NextOffset, err = getAlbumInlineResults(albumID, offset, N_RESULTS, vkUser)
 					if err != nil {
 						log.Println(err)
