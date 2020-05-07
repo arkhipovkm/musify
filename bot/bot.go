@@ -173,7 +173,7 @@ func getSectionInlineResults(query string, offset, n int, u *vk.User) (results [
 			DisableWebPagePreview: false,
 		}
 		var id string
-		if pl.OwnerID != 0 && pl.ID != 0 && strconv.Itoa(pl.OwnerID)[:2] == "-2" && strconv.Itoa(pl.OwnerID).Contains(strconv.Itoa(pl.ID)) {
+		if pl.OwnerID != 0 && pl.ID != 0 && strconv.Itoa(pl.OwnerID)[:2] == "-2" && strings.Contains(strconv.Itoa(pl.OwnerID), strconv.Itoa(pl.ID)) {
 			id = utils.Itoa50(pl.ID)
 		} else {
 			id = pl.FullID()
