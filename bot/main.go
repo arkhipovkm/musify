@@ -157,7 +157,7 @@ func getSectionInlineResults(query string, offset, n int, u *vk.User) (results [
 			DisableWebPagePreview: false,
 		}
 		var id string
-		if pl.OwnerID != 0 && pl.ID != 0 && pl.FullID()[:6] == "-2000" {
+		if pl.OwnerID != 0 && pl.ID != 0 && pl.FullID()[:5] == "-2000" {
 			id = utils.Itoa50(pl.ID)
 		} else {
 			id = pl.FullID()
@@ -225,7 +225,7 @@ func process(bot *tgbotapi.BotAPI, updates tgbotapi.UpdatesChannel) {
 				if re.MatchString(update.InlineQuery.Query) {
 					subm := re.FindStringSubmatch(update.InlineQuery.Query)
 					albumID := subm[1]
-					if albumID[:6] != "-2000" {
+					if albumID[:5] != "-2000" {
 						decimalID := strconv.Itoa(utils.Atoi50(albumID))
 						albumID = "-2000" + decimalID + "_" + decimalID
 					}
