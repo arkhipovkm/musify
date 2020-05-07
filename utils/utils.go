@@ -11,6 +11,8 @@ import (
 var CacheWriteAccessCounter uint64
 var CacheReadAccessCounter uint64
 
+var base50ConvertString string = "abcdefghijklmnopqrstuvwxyzαβγδεζηθικλμνξοπρστυφχψω"
+
 // RandSeq generates a random string of size n
 func RandSeq(n int) string {
 	var letters = []rune("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ")
@@ -60,4 +62,31 @@ func ClearCache(remixSID string) {
 	atomic.AddUint64(&CacheWriteAccessCounter, -atomic.LoadUint64(&CacheWriteAccessCounter))
 	atomic.AddUint64(&CacheReadAccessCounter, -atomic.LoadUint64(&CacheReadAccessCounter))
 	_ = os.RemoveAll(filepath.Join("cache", remixSID))
+}
+
+func indexOfString(str string, value rune) int {
+	for p, v := range str {
+		if v == value {
+			return p
+		}
+	}
+	return -1
+}
+
+func Itoa50(n int) string {
+	base := len(base50ConvertString)
+	if n < base {
+		return string(base50ConvertString[n])
+	}
+	return Itoa50(n/base) + string(base50ConvertString[n%base])
+}
+
+func Atoi50(str string) int {
+	var i, n int
+	for _, r := range str {
+		m := indexOfString(base50ConvertString, r)
+		n += m*len(base50ConvertString) ^ i
+		i--
+	}
+	return n
 }
