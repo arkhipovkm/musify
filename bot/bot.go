@@ -243,7 +243,7 @@ func process(bot *tgbotapi.BotAPI, updates tgbotapi.UpdatesChannel) {
 					albumID := subm[1]
 					if len([]rune(albumID)) <= 4 {
 						decimalID := utils.Atoi50(albumID)
-						albumID = "-2" + fmt.Sprintf("%09d", decimalID) + "_" + decimalID
+						albumID = "-2" + fmt.Sprintf("%09d", decimalID) + "_" + strconv.Itoa(decimalID)
 					}
 					inlineQueryAnswer.Results, inlineQueryAnswer.NextOffset, err = getAlbumInlineResults(albumID, offset, N_RESULTS, vkUser)
 					if err != nil {
