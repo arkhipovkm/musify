@@ -173,7 +173,7 @@ func getSectionInlineResults(query string, offset, n int, u *vk.User) (results [
 			DisableWebPagePreview: false,
 		}
 		var id string
-		if pl.OwnerID != 0 && pl.ID != 0 && pl.FullID()[:5] == "-2000" {
+		if pl.OwnerID != 0 && pl.ID != 0 && strconv.Itoa(pl.OwnerID)[:2] == "-2" && strconv.Itoa(pl.OwnerID).Contains(strconc.Itoa(pl.ID)) {
 			id = utils.Itoa50(pl.ID)
 		} else {
 			id = pl.FullID()
@@ -243,7 +243,7 @@ func process(bot *tgbotapi.BotAPI, updates tgbotapi.UpdatesChannel) {
 					albumID := subm[1]
 					if len([]rune(albumID)) <= 4 {
 						decimalID := strconv.Itoa(utils.Atoi50(albumID))
-						albumID = "-2000" + decimalID + "_" + decimalID
+						albumID = "-2" + fmt.Sprintf("%09d", decimalID) + "_" + decimalID
 					}
 					inlineQueryAnswer.Results, inlineQueryAnswer.NextOffset, err = getAlbumInlineResults(albumID, offset, N_RESULTS, vkUser)
 					if err != nil {
