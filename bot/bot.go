@@ -241,7 +241,7 @@ func process(bot *tgbotapi.BotAPI, updates tgbotapi.UpdatesChannel) {
 				if re.MatchString(update.InlineQuery.Query) {
 					subm := re.FindStringSubmatch(update.InlineQuery.Query)
 					albumID := subm[1]
-					if albumID[:5] != "-2000" {
+					if len([]rune(albumID)) <= 4 {
 						decimalID := strconv.Itoa(utils.Atoi50(albumID))
 						albumID = "-2000" + decimalID + "_" + decimalID
 					}
