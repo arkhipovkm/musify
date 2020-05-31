@@ -27,10 +27,6 @@ import (
 var VKErrorCounter uint64
 var VKRequestCounter uint64
 
-func check(k, v interface{}) {
-	log.Panic(k, v)
-}
-
 var audioItemIndex = map[string]int{
 	"AUDIO_ITEM_INDEX_ID":           0,
 	"AUDIO_ITEM_INDEX_OWNER_ID":     1,
@@ -163,17 +159,17 @@ func extractRawHTML(payload map[string]interface{}) ([]byte, error) {
 }
 
 func doPOSTRequest(uri string, data url.Values, u *User) []byte {
-	_url, _ := url.Parse(uri)
+	URL, _ := url.Parse(uri)
 	cookie := http.Cookie{
 		Name:  "remixsid",
 		Value: u.RemixSID,
 	}
 	jar, _ := cookiejar.New(&cookiejar.Options{PublicSuffixList: publicsuffix.List})
-	jar.SetCookies(_url, []*http.Cookie{&cookie})
+	jar.SetCookies(URL, []*http.Cookie{&cookie})
 	client := &http.Client{
 		Jar: jar,
 	}
-	resp, _ := client.PostForm(_url.String(), data)
+	resp, _ := client.PostForm(URL.String(), data)
 	body, _ := ioutil.ReadAll(resp.Body)
 	defer resp.Body.Close()
 	utf8Body, _, _ := transform.Bytes(charmap.Windows1251.NewDecoder(), body)
@@ -421,12 +417,12 @@ func NewPlaylist(rawPlaylist map[string]interface{}) *Playlist {
 		case "type":
 			playlist.Type, ok = v.(string)
 			if !ok {
-				check(k, v)
+				log.Panic("NewPlaylist parse error. Key:", k)
 			}
 		case "ownerId":
 			V, ok := v.(float64)
 			if !ok {
-				check(k, v)
+				log.Panic("NewPlaylist parse error. Key:", k)
 			}
 			playlist.OwnerID = int(V)
 		case "id":
@@ -436,7 +432,7 @@ func NewPlaylist(rawPlaylist map[string]interface{}) *Playlist {
 			case string:
 				playlist.ID = 0
 			default:
-				check(k, v)
+				log.Panic("NewPlaylist parse error. Key:", k)
 			}
 		case "isOfficial":
 			switch V := v.(type) {
@@ -445,12 +441,12 @@ func NewPlaylist(rawPlaylist map[string]interface{}) *Playlist {
 			case bool:
 				playlist.IsOfficial = V
 			default:
-				check(k, v)
+				log.Panic("NewPlaylist parse error. Key:", k)
 			}
 		case "title":
 			playlist.Title, ok = v.(string)
 			if !ok {
-				check(k, v)
+				log.Panic("NewPlaylist parse error. Key:", k)
 			}
 		case "subTitle":
 			switch V := v.(type) {
@@ -462,12 +458,12 @@ func NewPlaylist(rawPlaylist map[string]interface{}) *Playlist {
 		case "description":
 			playlist.Description, ok = v.(string)
 			if !ok {
-				check(k, v)
+				log.Panic("NewPlaylist parse error. Key:", k)
 			}
 		case "coverUrl":
 			playlist.CoverURL, ok = v.(string)
 			if !ok {
-				check(k, v)
+				log.Panic("NewPlaylist parse error. Key:", k)
 			}
 		case "hasMore":
 			switch V := v.(type) {
@@ -476,7 +472,7 @@ func NewPlaylist(rawPlaylist map[string]interface{}) *Playlist {
 			case bool:
 				playlist.HasMore = V
 			default:
-				check(k, v)
+				log.Panic("NewPlaylist parse error. Key:", k)
 			}
 		case "nextOffset":
 			switch V := v.(type) {
@@ -485,30 +481,30 @@ func NewPlaylist(rawPlaylist map[string]interface{}) *Playlist {
 			case string:
 				playlist.NextOffset = 0
 			default:
-				check(k, v)
+				log.Panic("NewPlaylist parse error. Key:", k)
 			}
 		case "totalCount":
 			V, ok := v.(float64)
 			if !ok {
-				check(k, v)
+				log.Panic("NewPlaylist parse error. Key:", k)
 			}
 			playlist.TotalCount = int(V)
 		case "accessHash":
 			V, ok := v.(string)
 			if !ok {
-				check(k, v)
+				log.Panic("NewPlaylist parse error. Key:", k)
 			}
 			playlist.AccessHash = V
 		case "lastUpdated":
 			V, ok := v.(float64)
 			if !ok {
-				check(k, v)
+				log.Panic("NewPlaylist parse error. Key:", k)
 			}
 			playlist.LastUpdated = int(V)
 		case "authorName":
 			V, ok := v.(string)
 			if !ok {
-				check(k, v)
+				log.Panic("NewPlaylist parse error. Key:", k)
 			}
 			if len(V) >= 8 && V[:8] == "<a class" {
 				re := regexp.MustCompile(">(.*?)</a>")
@@ -522,7 +518,7 @@ func NewPlaylist(rawPlaylist map[string]interface{}) *Playlist {
 		case "authorHref":
 			V, ok := v.(string)
 			if !ok {
-				check(k, v)
+				log.Panic("NewPlaylist parse error. Key:", k)
 			}
 			if strings.Contains(V, "<a class") {
 				re := regexp.MustCompile("href=\"(.*?)\"")
@@ -533,7 +529,7 @@ func NewPlaylist(rawPlaylist map[string]interface{}) *Playlist {
 		case "authorLine":
 			V, ok := v.(string)
 			if !ok {
-				check(k, v)
+				log.Panic("NewPlaylist parse error. Key:", k)
 			}
 			playlist.AuthorLine = V
 			if strings.Contains(V, "<a class") {
@@ -544,7 +540,7 @@ func NewPlaylist(rawPlaylist map[string]interface{}) *Playlist {
 		case "infoLine1":
 			V, ok := v.(string)
 			if !ok {
-				check(k, v)
+				log.Panic("NewPlaylist parse error. Key:", k)
 			}
 			if strings.Contains(V, "<span class=\"dvd\"></span>") {
 				re := regexp.MustCompile("(.*?)<span class=\"dvd\"></span>(.*?)$")
@@ -556,7 +552,7 @@ func NewPlaylist(rawPlaylist map[string]interface{}) *Playlist {
 		case "infoLine2":
 			V, ok := v.(string)
 			if !ok {
-				check(k, v)
+				log.Panic("NewPlaylist parse error. Key:", k)
 			}
 			if strings.Contains(V, "<span class=\"dvd\"></span>") {
 				re := regexp.MustCompile("(.*?)<span class=\"dvd\"></span>(.*?)$")
@@ -647,58 +643,58 @@ func NewAudio(rawAudio []interface{}) *Audio {
 		case audioItemIndex["AUDIO_ITEM_INDEX_ID"]:
 			V, ok := v.(float64)
 			if !ok {
-				check(i, v)
+				log.Panic("NewAudio parse error. Item:", i)
 			}
 			audio.AudioID = int(V)
 		case audioItemIndex["AUDIO_ITEM_INDEX_OWNER_ID"]:
 			V, ok := v.(float64)
 			if !ok {
-				check(i, v)
+				log.Panic("NewAudio parse error. Item:", i)
 			}
 			audio.OwnerID = int(V)
 		case audioItemIndex["AUDIO_ITEM_INDEX_TITLE"]:
 			audio.Title, ok = v.(string)
 			if !ok {
-				check(i, v)
+				log.Panic("NewAudio parse error. Item:", i)
 			}
 		case audioItemIndex["AUDIO_ITEM_INDEX_SUBTITLE"]:
 			audio.Subtitle, ok = v.(string)
 			if !ok {
-				check(i, v)
+				log.Panic("NewAudio parse error. Item:", i)
 			}
 		case audioItemIndex["AUDIO_ITEM_INDEX_PERFORMER"]:
 			audio.Performer, ok = v.(string)
 			if !ok {
-				check(i, v)
+				log.Panic("NewAudio parse error. Item:", i)
 			}
 		case audioItemIndex["AUDIO_ITEM_INDEX_DURATION"]:
 			V, ok := v.(float64)
 			if !ok {
-				check(i, v)
+				log.Panic("NewAudio parse error. Item:", i)
 			}
 			audio.Duration = int(V)
 		case audioItemIndex["AUDIO_ITEM_INDEX_LYRICS"]:
 			V, ok := v.(float64)
 			if !ok {
-				check(i, v)
+				log.Panic("NewAudio parse error. Item:", i)
 			}
 			audio.Lyrics = int(V)
 		case audioItemIndex["AUDIO_ITEM_INDEX_URL"]:
 			audio.URL, ok = v.(string)
 			if !ok {
-				check(i, v)
+				log.Panic("NewAudio parse error. Item:", i)
 			}
 		case audioItemIndex["AUDIO_ITEM_INDEX_FLAGS"]:
 			flags, ok = v.(int)
 		case audioItemIndex["AUDIO_ITEM_INDEX_CONTEXT"]:
 			audio.Context, ok = v.(string)
 			if !ok {
-				check(i, v)
+				log.Panic("NewAudio parse error. Item:", i)
 			}
 		case audioItemIndex["AUDIO_ITEM_INDEX_EXTRA"]:
 			audio.Extra, ok = v.(string)
 			if !ok {
-				check(i, v)
+				log.Panic("NewAudio parse error. Item:", i)
 			}
 		case audioItemIndex["AUDIO_ITEM_INDEX_ALBUM"]:
 			switch V := v.(type) {
@@ -710,13 +706,13 @@ func NewAudio(rawAudio []interface{}) *Audio {
 		case audioItemIndex["AUDIO_ITEM_INDEX_ALBUM_ID"]:
 			V, ok := v.(float64)
 			if !ok {
-				check(i, V)
+				log.Panic("NewAudio parse error. Item:", i)
 			}
 			audio.AlbumID = int(V)
 		case audioItemIndex["AUDIO_ITEM_INDEX_TRACK_CODE"]:
 			audio.TrackCode, ok = v.(string)
 			if !ok {
-				check(i, v)
+				log.Panic("NewAudio parse error. Item:", i)
 			}
 		case audioItemIndex["AUDIO_ITEM_INDEX_HASHES"]:
 			hashes, ok = v.(string)
@@ -767,8 +763,6 @@ func LoadPlaylist(id string, u *User) *Playlist {
 	var accessHash string
 	if len(s) > 2 {
 		accessHash = s[2]
-	} else {
-		log.Println("LoadPlaylist: short ID:", id)
 	}
 	_ = os.MkdirAll(filepath.Join("cache", u.RemixSID, "playlists"), os.ModePerm)
 	filename := filepath.Join("cache", u.RemixSID, "playlists", fmt.Sprintf("%d_%d", ownerID, playlistID))
