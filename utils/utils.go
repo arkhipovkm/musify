@@ -2,6 +2,8 @@ package utils
 
 import (
 	"encoding/gob"
+	"encoding/json"
+	"log"
 	"math"
 	"math/rand"
 	"os"
@@ -91,4 +93,9 @@ func Atoi50(str string) int {
 		i--
 	}
 	return n
+}
+
+func LogJSON(msg interface{}) {
+	js, _ := json.MarshalIndent(msg, "", "    ")
+	log.Println(string(js))
 }
