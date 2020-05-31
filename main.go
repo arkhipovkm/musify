@@ -6,10 +6,12 @@ import (
 	"os"
 
 	"github.com/arkhipovkm/musify/bot"
+	"github.com/arkhipovkm/musify/db"
 	"github.com/arkhipovkm/musify/streamer"
 )
 
 func main() {
+	defer db.DB.Close()
 	herokuAppName := os.Getenv("HEROKU_APP_NAME")
 	if herokuAppName == "" {
 		panic("No Heroku App Name")

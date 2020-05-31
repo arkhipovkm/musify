@@ -13,6 +13,7 @@ import (
 	"sync/atomic"
 	"time"
 
+	"github.com/arkhipovkm/musify/db"
 	"github.com/arkhipovkm/musify/utils"
 	"github.com/arkhipovkm/musify/vk"
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api"
@@ -272,7 +273,12 @@ func process(bot *tgbotapi.BotAPI, updates tgbotapi.UpdatesChannel) {
 				}
 				for _, audioShare := range audioShares {
 					audioShare.ChatID = int64(update.CallbackQuery.From.ID)
-					bot.Send(audioShare)
+					msg, _ := bot.Send(audioShare)
+					err = db.PutMessage(&msg)
+					if err != nil {
+						log.Println(err)
+					}
+					// utils.LogJSON(&msg)
 				}
 			}
 		} else if update.Message != nil {
@@ -301,7 +307,19 @@ func process(bot *tgbotapi.BotAPI, updates tgbotapi.UpdatesChannel) {
 					)
 					bot.Send(msg)
 				}
+			} else if update.Message.Audio != nil {
+				err = db.PutMessage(update.Message)
+				if err != nil {
+					log.Println(err)
+				}
+				// utils.LogJSON(update.Message)
 			}
+		} else if update.ChosenInlineResult != nil {
+			err = db.PutChosenInlineResult(update.ChosenInlineResult)
+			if err != nil {
+				log.Println(err)
+			}
+			// utils.LogJSON(update.ChosenInlineResult)
 		}
 	}
 }
@@ -317,19 +335,23 @@ func Bot() {
 	bot.Debug = false
 	log.Printf("Authenticated on Telegram Bot account %s", bot.Self.UserName)
 
-	_, err = bot.SetWebhook(tgbotapi.NewWebhook(fmt.Sprintf("https://%s.herokuapp.com/%s", os.Getenv("HEROKU_APP_NAME"), bot.Token)))
-	if err != nil {
-		log.Fatal(err)
-	}
-	info, err := bot.GetWebhookInfo()
-	if err != nil {
-		log.Fatal(err)
-	}
-	if info.LastErrorDate != 0 {
-		log.Printf("Telegram callback failed: %s", info.LastErrorMessage)
-	}
-	updates := bot.ListenForWebhook("/" + bot.Token)
+	// _, err = bot.SetWebhook(tgbotapi.NewWebhook(fmt.Sprintf("https://%s.herokuapp.com/%s", os.Getenv("HEROKU_APP_NAME"), bot.Token)))
+	// if err != nil {
+	// 	log.Fatal(err)
+	// }
+	// info, err := bot.GetWebhookInfo()
+	// if err != nil {
+	// 	log.Fatal(err)
+	// }
+	// if info.LastErrorDate != 0 {
+	// 	log.Printf("Telegram callback failed: %s", info.LastErrorMessage)
+	// }
+	// updates := bot.ListenForWebhook("/" + bot.Token)
+	_, err = bot.RemoveWebhook()
+	u := tgbotapi.NewUpdate(0)
+	u.Timeout = 60
 
+	updates, err := bot.GetUpdatesChan(u)
 	for w := 0; w < runtime.NumCPU()+2; w++ {
 		go process(bot, updates)
 	}
