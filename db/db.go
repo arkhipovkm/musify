@@ -107,3 +107,17 @@ func PutChosenInlineResult(cir *tgbotapi.ChosenInlineResult) error {
 	}
 	return err
 }
+
+func PutMessageAsync(msg *tgbotapi.Message) {
+	err := PutMessage(msg)
+	if err != nil {
+		log.Println(err)
+	}
+}
+
+func PutChosenInlineResultAsync(cir *tgbotapi.ChosenInlineResult) {
+	err := PutChosenInlineResult(cir)
+	if err != nil {
+		log.Println(err)
+	}
+}
