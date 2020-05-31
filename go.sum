@@ -1,5 +1,7 @@
 github.com/arkhipovkm/id3-go v0.0.0-20200427115145-3af349cca3cf h1:pVJ0ELWlqg3fmmlh4P/v8kmbl7rieaaHvL/pi59kFNY=
 github.com/arkhipovkm/id3-go v0.0.0-20200427115145-3af349cca3cf/go.mod h1:i+AZieZ+8SWzwXTzxWVIsK3K6PlP/hiMhYVPIpE5ZYI=
+github.com/go-sql-driver/mysql v1.5.0 h1:ozyZYNQW3x3HtqT1jira07DN2PArx2v7/mN66gGcHOs=
+github.com/go-sql-driver/mysql v1.5.0/go.mod h1:DCzpHaOWr8IXmIStZouvnhqoel9Qv2LBy8hT2VhHyBg=
 github.com/go-telegram-bot-api/telegram-bot-api v1.0.0 h1:HXVtsZ+yINQeyyhPFAUU4yKmeN+iFhJ87jXZOC016gs=
 github.com/go-telegram-bot-api/telegram-bot-api v4.6.4+incompatible h1:2cauKuaELYAEARXRkq2LrJ0yDDv1rW7+wrTEdVL3uaU=
 github.com/go-telegram-bot-api/telegram-bot-api v4.6.4+incompatible/go.mod h1:qf9acutJ8cwBUhm1bqgz6Bei9/C/c93FPDljKWwsOgM=
