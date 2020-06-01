@@ -224,7 +224,7 @@ func process(bot *tgbotapi.BotAPI, updates tgbotapi.UpdatesChannel) {
 		if update.InlineQuery != nil {
 			inlineQueryAnswer := tgbotapi.InlineConfig{
 				InlineQueryID: update.InlineQuery.ID,
-				CacheTime:     0,
+				CacheTime:     3600,
 				IsPersonal:    false,
 			}
 			if update.InlineQuery.Query == "" || update.InlineQuery.Query == " " {
@@ -251,7 +251,7 @@ func process(bot *tgbotapi.BotAPI, updates tgbotapi.UpdatesChannel) {
 					if err != nil {
 						log.Println(err)
 					}
-					// inlineQueryAnswer.CacheTime = 3600
+					inlineQueryAnswer.CacheTime = 3600
 					bot.AnswerInlineQuery(inlineQueryAnswer)
 				} else {
 					inlineQueryAnswer.Results, inlineQueryAnswer.NextOffset, err = getSectionInlineResults(update.InlineQuery.Query, offset, N_RESULTS, vkUser)
