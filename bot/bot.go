@@ -174,11 +174,12 @@ func getSectionInlineResults(query string, offset, n int, u *vk.User) (results [
 			DisableWebPagePreview: false,
 		}
 		var id string
-		if pl.OwnerID != 0 && pl.ID != 0 && strconv.Itoa(pl.OwnerID)[:2] == "-2" && strings.Contains(strconv.Itoa(pl.OwnerID), strconv.Itoa(pl.ID)) {
-			id = utils.Itoa50(pl.ID)
-		} else {
-			id = pl.FullID()
-		}
+		id = pl.FullID()
+		// if pl.OwnerID != 0 && pl.ID != 0 && strconv.Itoa(pl.OwnerID)[:2] == "-2" && strings.Contains(strconv.Itoa(pl.OwnerID), strconv.Itoa(pl.ID)) {
+		// 	id = utils.Itoa50(pl.ID)
+		// } else {
+		// 	id = pl.FullID()
+		// }
 		switchInlineQuery := ":album " + id
 		callBackData := "send-all-" + pl.FullID()
 		results = append(results, &tgbotapi.InlineQueryResultArticle{
@@ -242,10 +243,10 @@ func process(bot *tgbotapi.BotAPI, updates tgbotapi.UpdatesChannel) {
 				if re.MatchString(update.InlineQuery.Query) {
 					subm := re.FindStringSubmatch(update.InlineQuery.Query)
 					albumID := subm[1]
-					if len([]rune(albumID)) <= 4 {
-						decimalID := utils.Atoi50(albumID)
-						albumID = "-2" + fmt.Sprintf("%09d", decimalID) + "_" + strconv.Itoa(decimalID)
-					}
+					// if len([]rune(albumID)) <= 4 {
+					// 	decimalID := utils.Atoi50(albumID)
+					// 	albumID = "-2" + fmt.Sprintf("%09d", decimalID) + "_" + strconv.Itoa(decimalID)
+					// }
 					inlineQueryAnswer.Results, inlineQueryAnswer.NextOffset, err = getAlbumInlineResults(albumID, offset, N_RESULTS, vkUser)
 					if err != nil {
 						log.Println(err)
