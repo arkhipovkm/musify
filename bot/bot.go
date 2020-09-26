@@ -113,6 +113,7 @@ func getAlbumInlineResults(albumID string, offset int, n int, u *vk.User) (resul
 	defer func() {
 		r := recover()
 		err, _ = r.(error)
+		log.Println(err)
 	}()
 	playlist := vk.LoadPlaylist(albumID, u)
 
@@ -148,8 +149,63 @@ func getSectionInlineResults(query string, offset, n int, u *vk.User) (results [
 		r := recover()
 		err, _ = r.(error)
 	}()
+
+	if offset == 0 {
+		pages, pagesPlaylistMap, err := vk.PagesQuery(query, u)
+		if err == nil {
+			for _, page := range pages {
+				pl := pagesPlaylistMap[page.ID]
+				title := pl.Title
+				var description string
+				if pl.NPlaysInfoStr != "" {
+					description = pl.NPlaysInfoStr
+				} else if pl.InfoLine2 != "" {
+					description = pl.InfoLine2
+				}
+				var coverSuffix string
+				if pl.CoverURL != "" {
+					coverSuffix = fmt.Sprintf("[.](%s)", pl.CoverURL)
+				}
+				inputMessageContent := &tgbotapi.InputTextMessageContent{
+					Text:                  title + "\n" + description + coverSuffix,
+					ParseMode:             "markdown",
+					DisableWebPagePreview: false,
+				}
+				id := pl.FullID()
+				switchInlineQuery := ":album " + id[:len(id)-1]
+				// callBackData := "send-all-" + id[:len(id)-1]
+				results = append(results, &tgbotapi.InlineQueryResultArticle{
+					Type:                "article",
+					ID:                  uuid.New().String(),
+					Title:               title,
+					Description:         description,
+					ThumbURL:            page.PhotoURL,
+					InputMessageContent: inputMessageContent,
+					HideURL:             true,
+					ReplyMarkup: &tgbotapi.InlineKeyboardMarkup{
+						InlineKeyboard: [][]tgbotapi.InlineKeyboardButton{{
+							tgbotapi.InlineKeyboardButton{
+								Text:                         "Discover",
+								SwitchInlineQueryCurrentChat: &switchInlineQuery,
+							},
+							tgbotapi.InlineKeyboardButton{
+								Text:              "Share",
+								SwitchInlineQuery: &switchInlineQuery,
+							},
+							// tgbotapi.InlineKeyboardButton{
+							// 	Text:         "Download",
+							// 	CallbackData: &callBackData,
+							// },
+						}},
+					},
+				})
+			}
+		}
+	}
+
 	playlistMap, topPlaylists, audios, err := vk.SectionQuery(query, offset, n, u)
 	if err != nil {
+		log.Println(err)
 		return results, nextOffset, err
 	}
 	for _, pl := range topPlaylists {
@@ -175,11 +231,6 @@ func getSectionInlineResults(query string, offset, n int, u *vk.User) (results [
 		}
 		var id string
 		id = pl.FullID()
-		// if pl.OwnerID != 0 && pl.ID != 0 && strconv.Itoa(pl.OwnerID)[:2] == "-2" && strings.Contains(strconv.Itoa(pl.OwnerID), strconv.Itoa(pl.ID)) {
-		// 	id = utils.Itoa50(pl.ID)
-		// } else {
-		// 	id = pl.FullID()
-		// }
 		switchInlineQuery := ":album " + id
 		callBackData := "send-all-" + pl.FullID()
 		results = append(results, &tgbotapi.InlineQueryResultArticle{
@@ -224,7 +275,7 @@ func process(bot *tgbotapi.BotAPI, updates tgbotapi.UpdatesChannel) {
 		if update.InlineQuery != nil {
 			inlineQueryAnswer := tgbotapi.InlineConfig{
 				InlineQueryID: update.InlineQuery.ID,
-				CacheTime:     3600,
+				CacheTime:     0, //3600,
 				IsPersonal:    false,
 			}
 			if update.InlineQuery.Query == "" || update.InlineQuery.Query == " " {
@@ -327,22 +378,22 @@ func Bot() {
 	bot.Debug = false
 	log.Printf("Authenticated on Telegram Bot account %s", bot.Self.UserName)
 
-	_, err = bot.SetWebhook(tgbotapi.NewWebhook(fmt.Sprintf("https://%s.herokuapp.com/%s", os.Getenv("HEROKU_APP_NAME"), bot.Token)))
-	if err != nil {
-		log.Fatal(err)
-	}
-	info, err := bot.GetWebhookInfo()
-	if err != nil {
-		log.Fatal(err)
-	}
-	if info.LastErrorDate != 0 {
-		log.Printf("Telegram callback failed: %s", info.LastErrorMessage)
-	}
-	updates := bot.ListenForWebhook("/" + bot.Token)
-	// _, err = bot.RemoveWebhook()
-	// u := tgbotapi.NewUpdate(0)
-	// u.Timeout = 60
-	// updates, err := bot.GetUpdatesChan(u)
+	// _, err = bot.SetWebhook(tgbotapi.NewWebhook(fmt.Sprintf("https://%s.herokuapp.com/%s", os.Getenv("HEROKU_APP_NAME"), bot.Token)))
+	// if err != nil {
+	// 	log.Fatal(err)
+	// }
+	// info, err := bot.GetWebhookInfo()
+	// if err != nil {
+	// 	log.Fatal(err)
+	// }
+	// if info.LastErrorDate != 0 {
+	// 	log.Printf("Telegram callback failed: %s", info.LastErrorMessage)
+	// }
+	// updates := bot.ListenForWebhook("/" + bot.Token)
+	_, err = bot.RemoveWebhook()
+	u := tgbotapi.NewUpdate(0)
+	u.Timeout = 60
+	updates, err := bot.GetUpdatesChan(u)
 	for w := 0; w < runtime.NumCPU()+2; w++ {
 		go process(bot, updates)
 	}
