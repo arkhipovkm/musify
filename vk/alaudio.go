@@ -293,6 +293,7 @@ func acquireURLs(audioList []*Audio, u *User) error {
 			filename := filepath.Join("cache", u.RemixSID, "audios", fmt.Sprintf("%d_%d", audio.OwnerID, audio.AudioID))
 			err = utils.ReadCache(filename, audio)
 			if err != nil {
+				err = nil
 				continue
 			}
 		}
@@ -386,8 +387,8 @@ func (playlist *Playlist) DecypherURLs(u *User) {
 // AcquireURLs acquires URLs of playlist.List's audios by making *reload_audio* requests to vk's al_audio.php
 // Makes concurrent requests.
 // Might not work on large Lists of > 400 audios due to VK's throttling policy.
-func (playlist *Playlist) AcquireURLs(u *User) {
-	acquireURLs(playlist.List, u)
+func (playlist *Playlist) AcquireURLs(u *User) error {
+	return acquireURLs(playlist.List, u)
 }
 
 // AcquireURLsWG is the same as AcquireURLs, but with WaitGroup.Done() call in the end
@@ -777,7 +778,7 @@ func LoadPlaylist(id string, u *User) *Playlist {
 	if err != nil {
 		log.Println("Load Playlist Error. Id:", id)
 		log.Println(err)
-		return playlist
+		return nil
 	}
 	playlist = NewPlaylist(rawPlaylist)
 	_ = utils.WriteCache(filename, playlist)

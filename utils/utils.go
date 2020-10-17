@@ -3,9 +3,11 @@ package utils
 import (
 	"encoding/gob"
 	"encoding/json"
+	"io/ioutil"
 	"log"
 	"math"
 	"math/rand"
+	"net/http"
 	"os"
 	"path/filepath"
 	"sync/atomic"
@@ -98,4 +100,23 @@ func Atoi50(str string) int {
 func LogJSON(msg interface{}) {
 	js, _ := json.MarshalIndent(msg, "", "    ")
 	log.Println(string(js))
+}
+
+func HttpGET(uri string) ([]byte, error) {
+	resp, err := http.Get(uri)
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+	data, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		return nil, err
+	}
+	return data, nil
+}
+
+func HttpGETChan(uri string, dataChan chan []byte, errChan chan error) {
+	data, err := HttpGET(uri)
+	dataChan <- data
+	errChan <- err
 }

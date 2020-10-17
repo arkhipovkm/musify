@@ -2,6 +2,7 @@ package db
 
 import (
 	"database/sql"
+	"errors"
 	"fmt"
 	"log"
 	"os"
@@ -32,6 +33,10 @@ func init() {
 
 func PutMessage(msg *tgbotapi.Message) error {
 	var err error
+	if msg == nil {
+		err = errors.New("Message is nil. Message will not be inserted")
+		return err
+	}
 	if msg.Audio != nil {
 		_, err = DB.Exec("INSERT IGNORE INTO audios (file_id, duration, performer, title, mime_type, file_size) VALUES (?, ?, ?, ?, ?, ?)",
 			msg.Audio.FileID,

@@ -275,7 +275,7 @@ func process(bot *tgbotapi.BotAPI, updates tgbotapi.UpdatesChannel) {
 				for _, audioShare := range audioShares {
 					audioShare.ChatID = int64(update.CallbackQuery.From.ID)
 					msg, _ := bot.Send(audioShare)
-					go db.PutMessage(&msg)
+					go db.PutMessageAsync(&msg)
 					// utils.LogJSON(&msg)
 				}
 			}
@@ -306,7 +306,7 @@ func process(bot *tgbotapi.BotAPI, updates tgbotapi.UpdatesChannel) {
 					bot.Send(msg)
 				}
 			} else if update.Message.Audio != nil {
-				go db.PutMessage(update.Message)
+				go db.PutMessageAsync(update.Message)
 				// utils.LogJSON(update.Message)
 			}
 		} else if update.ChosenInlineResult != nil {
