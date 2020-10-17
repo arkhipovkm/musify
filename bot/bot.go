@@ -201,7 +201,7 @@ func getSectionInlineResults(query string, offset, n int, u *vk.User) (results [
 						SwitchInlineQuery: &switchInlineQuery,
 					},
 					tgbotapi.InlineKeyboardButton{
-						Text:         "Download",
+						Text:         "Get",
 						CallbackData: &callBackData,
 					},
 				}},
@@ -273,7 +273,17 @@ func process(bot *tgbotapi.BotAPI, updates tgbotapi.UpdatesChannel) {
 					log.Println(err)
 				}
 				for _, audioShare := range audioShares {
-					audioShare.ChatID = int64(update.CallbackQuery.From.ID)
+					var chatID int64
+					if update.CallbackQuery.Message != nil &&
+						update.CallbackQuery.Message.Chat != nil &&
+						update.CallbackQuery.Message.Chat.ID != 0 {
+						chatID = update.CallbackQuery.Message.Chat.ID
+					} else if update.CallbackQuery.From != nil {
+						chatID = int64(update.CallbackQuery.From.ID)
+					} else {
+						break
+					}
+					audioShare.ChatID = chatID
 					msg, _ := bot.Send(audioShare)
 					if msg.MessageID != 0 {
 						go db.PutMessageAsync(&msg)
