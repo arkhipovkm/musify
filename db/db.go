@@ -8,6 +8,7 @@ import (
 	"os"
 	"time"
 
+	"github.com/arkhipovkm/musify/utils"
 	_ "github.com/go-sql-driver/mysql"
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api"
 )
@@ -76,15 +77,20 @@ func PutMessage(msg *tgbotapi.Message) error {
 			return fmt.Errorf("Error inserting Chat: %s", err)
 		}
 	}
-	_, err = DB.Exec("INSERT INTO messages (message_id, date, from_id, chat_id, audio_id) VALUES (?, ?, ?, ?, ?)",
-		msg.MessageID,
-		msg.Date,
-		msg.From.ID,
-		msg.Chat.ID,
-		msg.Audio.FileID,
-	)
-	if err != nil {
-		return fmt.Errorf("Error inserting Message: %s", err)
+	if msg.Chat != nil && msg.From != nil {
+		_, err = DB.Exec("INSERT INTO messages (message_id, date, from_id, chat_id, audio_id) VALUES (?, ?, ?, ?, ?)",
+			msg.MessageID,
+			msg.Date,
+			msg.From.ID,
+			msg.Chat.ID,
+			msg.Audio.FileID,
+		)
+		if err != nil {
+			return fmt.Errorf("Error inserting Message: %s", err)
+		}
+	} else {
+		log.Println("Message with nil Chat or nil From:")
+		utils.LogJSON(msg)
 	}
 	return err
 }
