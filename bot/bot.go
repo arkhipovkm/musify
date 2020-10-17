@@ -63,7 +63,7 @@ func prepareAudioStreamURI(a *vk.Audio, album *vk.Playlist) string {
 	}
 	query.Set("apic_cover", base64.URLEncoding.EncodeToString([]byte(apicCover)))
 	return fmt.Sprintf(
-		"http://%s.herokuapp.com/streamer/%s/%s.mp3?%s",
+		"https://%s.herokuapp.com/streamer/%s/%s.mp3?%s",
 		os.Getenv("HEROKU_APP_NAME"),
 		base64.URLEncoding.EncodeToString([]byte(a.URL)),
 		url.PathEscape(strings.ReplaceAll(a.Performer, "/", "|")+" — "+strings.ReplaceAll(a.Title, "/", "|")),
@@ -272,17 +272,17 @@ func process(bot *tgbotapi.BotAPI, updates tgbotapi.UpdatesChannel) {
 				if err != nil {
 					log.Println(err)
 				}
+				var chatID int64
+				if update.CallbackQuery.Message != nil &&
+					update.CallbackQuery.Message.Chat != nil &&
+					update.CallbackQuery.Message.Chat.ID != 0 {
+					chatID = update.CallbackQuery.Message.Chat.ID
+				} else if update.CallbackQuery.From != nil {
+					chatID = int64(update.CallbackQuery.From.ID)
+				} else {
+					break
+				}
 				for _, audioShare := range audioShares {
-					var chatID int64
-					if update.CallbackQuery.Message != nil &&
-						update.CallbackQuery.Message.Chat != nil &&
-						update.CallbackQuery.Message.Chat.ID != 0 {
-						chatID = update.CallbackQuery.Message.Chat.ID
-					} else if update.CallbackQuery.From != nil {
-						chatID = int64(update.CallbackQuery.From.ID)
-					} else {
-						break
-					}
 					audioShare.ChatID = chatID
 					msg, _ := bot.Send(audioShare)
 					if msg.MessageID != 0 {
