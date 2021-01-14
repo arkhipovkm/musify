@@ -772,8 +772,7 @@ func LoadPlaylist(id string, u *User) *Playlist {
 		return playlist
 	}
 
-	var i int = 1
-	var offset int = 2000 * i
+	var offset int = 2000
 
 	body := loadSectionPOST(ownerID, playlistID, -offset, accessHash, u)
 	payload, err := extractPayload(body)
@@ -786,9 +785,8 @@ func LoadPlaylist(id string, u *User) *Playlist {
 	playlist = NewPlaylist(rawPlaylist)
 	if playlist.NextOffset != playlist.TotalCount {
 		for {
-			i++
-			offset = 2000 * i
-			if offset <= playlist.NextOffset {
+			if offset <= playlist.TotalCount {
+				offset += 2000
 				nBody := loadSectionPOST(ownerID, playlistID, -offset, accessHash, u)
 				nPayload, err := extractPayload(nBody)
 				nRawPlaylist, err := extractRawPlaylist(nPayload)
