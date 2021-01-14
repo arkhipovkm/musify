@@ -28,6 +28,14 @@ func main() {
 	if vkPassword == "" {
 		panic("No VK Password")
 	}
+	vkAPIAccessToken := os.Getenv("VK_API_ACCESS_TOKEN")
+	if vkAPIAccessToken == "" {
+		panic("No VK API Access Token")
+	}
+	musifyDSN := os.Getenv("MUSIFY_DSN")
+	if musifyDSN == "" {
+		panic("No Musify MySQL DSN")
+	}
 
 	go streamer.Streamer()
 	bot.Bot()
