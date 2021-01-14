@@ -772,7 +772,7 @@ func LoadPlaylist(id string, u *User) *Playlist {
 		return playlist
 	}
 
-	body := loadSectionPOST(ownerID, playlistID, 0, accessHash, u)
+	body := loadSectionPOST(ownerID, playlistID, -2000, accessHash, u)
 	payload, err := extractPayload(body)
 	rawPlaylist, err := extractRawPlaylist(payload)
 	if err != nil {
