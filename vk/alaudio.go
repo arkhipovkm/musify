@@ -772,7 +772,10 @@ func LoadPlaylist(id string, u *User) *Playlist {
 		return playlist
 	}
 
-	body := loadSectionPOST(ownerID, playlistID, -2000, accessHash, u)
+	var i int = 1
+	var offset int = 2000 * i
+
+	body := loadSectionPOST(ownerID, playlistID, -offset, accessHash, u)
 	payload, err := extractPayload(body)
 	rawPlaylist, err := extractRawPlaylist(payload)
 	if err != nil {
@@ -781,6 +784,26 @@ func LoadPlaylist(id string, u *User) *Playlist {
 		return nil
 	}
 	playlist = NewPlaylist(rawPlaylist)
+	if playlist.NextOffset != playlist.TotalCount {
+		for {
+			i++
+			offset = 2000 * i
+			if offset <= playlist.NextOffset {
+				nBody := loadSectionPOST(ownerID, playlistID, -offset, accessHash, u)
+				nPayload, err := extractPayload(nBody)
+				nRawPlaylist, err := extractRawPlaylist(nPayload)
+				if err != nil {
+					log.Printf("Load Playlist Error on offset: %d. Id: %s\n", offset, id)
+					log.Println(err)
+					break
+				}
+				nextPlaylist := NewPlaylist(nRawPlaylist)
+				playlist.List = append(nextPlaylist.List, playlist.List...)
+			} else {
+				break
+			}
+		}
+	}
 	_ = utils.WriteCache(filename, playlist)
 	return playlist
 }
