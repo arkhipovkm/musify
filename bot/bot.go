@@ -108,13 +108,24 @@ func getAudioShares(albumID string, u *vk.User) (results []tgbotapi.AudioConfig,
 	return results, err
 }
 
-func getAlbumInlineResults(albumID string, offset int, n int, u *vk.User) (results []interface{}, nextOffset string, err error) {
+func getAlbumInlineResults(albumID string, offset int, n int, query string, u *vk.User) (results []interface{}, nextOffset string, err error) {
 	nextOffset = strconv.Itoa(offset + n)
 	defer func() {
 		r := recover()
 		err, _ = r.(error)
 	}()
 	playlist := vk.LoadPlaylist(albumID, u)
+
+	if query != "" {
+		var newList []*vk.Audio
+		queryRe := regexp.MustCompile("(?i)" + query)
+		for _, a := range playlist.List {
+			if queryRe.MatchString(a.Performer) || queryRe.MatchString(a.Album) || queryRe.MatchString(a.Title) {
+				newList = append(newList, a)
+			}
+		}
+		playlist.List = newList
+	}
 
 	if len(playlist.List) < offset {
 		playlist.List = nil
@@ -180,7 +191,7 @@ func getSectionInlineResults(query string, offset, n int, u *vk.User) (results [
 		// } else {
 		// 	id = pl.FullID()
 		// }
-		switchInlineQuery := ":album " + id
+		switchInlineQuery := ":album " + id + " "
 		callBackData := "send-all-" + pl.FullID()
 		results = append(results, &tgbotapi.InlineQueryResultArticle{
 			Type:                "article",
@@ -228,39 +239,100 @@ func process(bot *tgbotapi.BotAPI, updates tgbotapi.UpdatesChannel) {
 				IsPersonal:    false,
 			}
 			if update.InlineQuery.Query == "" || update.InlineQuery.Query == " " {
-				inlineQueryAnswer.CacheTime = 0
 				_, err := bot.AnswerInlineQuery(inlineQueryAnswer)
 				if err != nil {
 					log.Println(err)
-					break
 				}
 			} else {
 				var offset int
 				if update.InlineQuery.Offset != "" {
 					offset, _ = strconv.Atoi(update.InlineQuery.Offset)
 				}
-				re := regexp.MustCompile("^:album (.*?)$")
+				// Case Album+Query
+				re := regexp.MustCompile("^:album (.*?) (.*?)$")
 				if re.MatchString(update.InlineQuery.Query) {
 					subm := re.FindStringSubmatch(update.InlineQuery.Query)
 					albumID := subm[1]
-					// if len([]rune(albumID)) <= 4 {
-					// 	decimalID := utils.Atoi50(albumID)
-					// 	albumID = "-2" + fmt.Sprintf("%09d", decimalID) + "_" + strconv.Itoa(decimalID)
-					// }
-					inlineQueryAnswer.Results, inlineQueryAnswer.NextOffset, err = getAlbumInlineResults(albumID, offset, N_RESULTS, vkUser)
+					query := subm[2]
+					inlineQueryAnswer.Results, inlineQueryAnswer.NextOffset, err = getAlbumInlineResults(albumID, offset, N_RESULTS, query, vkUser)
 					if err != nil {
 						log.Println(err)
 					}
-					inlineQueryAnswer.CacheTime = 3600
 					bot.AnswerInlineQuery(inlineQueryAnswer)
-				} else {
+					continue
+				}
+				// Case Album
+				re = regexp.MustCompile("^:album (.*?)$")
+				if re.MatchString(update.InlineQuery.Query) {
+					subm := re.FindStringSubmatch(update.InlineQuery.Query)
+					albumID := subm[1]
+					inlineQueryAnswer.Results, inlineQueryAnswer.NextOffset, err = getAlbumInlineResults(albumID, offset, N_RESULTS, "", vkUser)
+					if err != nil {
+						log.Println(err)
+					}
+					bot.AnswerInlineQuery(inlineQueryAnswer)
+					continue
+				}
+				// Case User+Query
+				re = regexp.MustCompile("^@(.*?) (.*?)$")
+				if re.MatchString(update.InlineQuery.Query) {
+					subm := re.FindStringSubmatch(update.InlineQuery.Query)
+					userID := subm[1]
+					query := subm[2]
+					log.Println("User search + Query:", query, ".")
+					searcheeUsers, err := vk.UsersGet(userID)
+					if err != nil {
+						log.Println(err)
+						bot.AnswerInlineQuery(inlineQueryAnswer)
+						continue
+					}
+					if searcheeUsers == nil || len(searcheeUsers) == 0 {
+						log.Println("No such VK user:", userID)
+						bot.AnswerInlineQuery(inlineQueryAnswer)
+						continue
+					}
+					searcheeUser := searcheeUsers[0]
+					albumID := fmt.Sprintf("%d_-1", searcheeUser.ID)
+					log.Printf("Converted the %s user into its main album id: %s", userID, albumID)
+					inlineQueryAnswer.Results, inlineQueryAnswer.NextOffset, err = getAlbumInlineResults(albumID, offset, N_RESULTS, query, vkUser)
+					if err != nil {
+						log.Println(err)
+					}
+					bot.AnswerInlineQuery(inlineQueryAnswer)
+					continue
+				}
+				// Case user
+				re = regexp.MustCompile("^@(.*?)$")
+				if re.MatchString(update.InlineQuery.Query) {
+					subm := re.FindStringSubmatch(update.InlineQuery.Query)
+					userID := subm[1]
+					searcheeUsers, err := vk.UsersGet(userID)
+					if err != nil {
+						log.Println(err)
+						bot.AnswerInlineQuery(inlineQueryAnswer)
+						continue
+					}
+					if searcheeUsers == nil || len(searcheeUsers) == 0 {
+						log.Println("No such VK user:", userID)
+						bot.AnswerInlineQuery(inlineQueryAnswer)
+						continue
+					}
+					searcheeUser := searcheeUsers[0]
+					albumID := fmt.Sprintf("%d_-1", searcheeUser.ID)
+					log.Printf("Converted the %s user into its main album id: %s", userID, albumID)
+					inlineQueryAnswer.Results, inlineQueryAnswer.NextOffset, err = getAlbumInlineResults(albumID, offset, N_RESULTS, "", vkUser)
+					if err != nil {
+						log.Println(err)
+					}
+					bot.AnswerInlineQuery(inlineQueryAnswer)
+					continue
+				}
 					inlineQueryAnswer.Results, inlineQueryAnswer.NextOffset, err = getSectionInlineResults(update.InlineQuery.Query, offset, N_RESULTS, vkUser)
 					if err != nil {
 						log.Println(err)
 					}
 					bot.AnswerInlineQuery(inlineQueryAnswer)
-				}
-
+				continue
 			}
 		} else if update.CallbackQuery != nil {
 			bot.AnswerCallbackQuery(tgbotapi.NewCallback(update.CallbackQuery.ID, ""))
@@ -280,7 +352,7 @@ func process(bot *tgbotapi.BotAPI, updates tgbotapi.UpdatesChannel) {
 				} else if update.CallbackQuery.From != nil {
 					chatID = int64(update.CallbackQuery.From.ID)
 				} else {
-					break
+					continue
 				}
 				for _, audioShare := range audioShares {
 					audioShare.ChatID = chatID
