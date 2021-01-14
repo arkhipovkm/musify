@@ -18,7 +18,7 @@ type ApiUser struct {
 	Photo_max_orig string
 }
 
-func usersGet(joinedIDs string) ([]*ApiUser, error) {
+func UsersGet(joinedIDs string) ([]*ApiUser, error) {
 	var err error
 	var users []*ApiUser
 	if ACCESS_TOKEN != "" {
