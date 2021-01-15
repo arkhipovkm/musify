@@ -64,8 +64,8 @@ func login(username, password string) (remixsid string, userID int, err error) {
 	if re.MatchString(ss) {
 		// subm := re.FindStringSubmatch(ss)
 		// captchaSID := subm[1]
-		// log.Println("Captcha Needed. Captcha SID:", captchaSID)
 		captchaSID := utils.RandNumSeq(14)
+		log.Println("Captcha Needed. Captcha SID:", captchaSID)
 		resp, err = http.Get("https://api.vk.com/captcha.php?sid=" + captchaSID)
 		if err != nil {
 			return
