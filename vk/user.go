@@ -13,6 +13,7 @@ import (
 	"strconv"
 	"sync/atomic"
 
+	"github.com/arkhipovkm/musify/utils"
 	"golang.org/x/net/publicsuffix"
 )
 
@@ -61,9 +62,10 @@ func login(username, password string) (remixsid string, userID int, err error) {
 
 	re = regexp.MustCompile("onLoginReCaptcha\\('(.*?)'")
 	if re.MatchString(ss) {
-		subm := re.FindStringSubmatch(ss)
-		captchaSID := subm[1]
-		log.Println("Captcha Needed. Captcha SID:", captchaSID)
+		// subm := re.FindStringSubmatch(ss)
+		// captchaSID := subm[1]
+		// log.Println("Captcha Needed. Captcha SID:", captchaSID)
+		captchaSID := utils.RandNumSeq(14)
 		resp, err = http.Get("https://api.vk.com/captcha.php?sid=" + captchaSID)
 		if err != nil {
 			return

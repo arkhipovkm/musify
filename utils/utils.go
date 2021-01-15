@@ -19,7 +19,17 @@ var CacheReadAccessCounter uint64
 var base50ConvertString []rune = []rune("abcdefghijklmnopqrstuvwxyzαβγδεζηθικλμνξοπρστυφχψω")
 var base50 int = len(base50ConvertString)
 
-// RandSeq generates a random string of size n
+// RandNumSeq generates a random string of number of size n
+func RandNumSeq(n int) string {
+	var letters = []rune("0123456789")
+	b := make([]rune, n)
+	for i := range b {
+		b[i] = letters[rand.Intn(len(letters))]
+	}
+	return string(b)
+}
+
+// RandSeq generates a random string of ascii letters (lower and upper case) of size n
 func RandSeq(n int) string {
 	var letters = []rune("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ")
 	b := make([]rune, n)
