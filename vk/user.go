@@ -57,7 +57,7 @@ func login(username, password string) (remixsid string, userID int, err error) {
 	bs, _ := ioutil.ReadAll(resp.Body)
 	ss := string(bs)
 	log.Println(ss)
-	re = regexp.MustCompile("onLoginCaptcha\\('(\\d+)'")
+	re = regexp.MustCompile("onLoginReCaptcha\\('(\\d+)'")
 	if re.MatchString(ss) {
 		subm := re.FindStringSubmatch(ss)
 		captchaSID := subm[1]
