@@ -57,11 +57,20 @@ func login(username, password string) (remixsid string, userID int, err error) {
 	bs, _ := ioutil.ReadAll(resp.Body)
 	ss := string(bs)
 	log.Println(ss)
-	re = regexp.MustCompile("onLoginReCaptcha\\('(\\d+)'")
+
+	re = regexp.MustCompile("onLoginReCaptcha\\('(.*?)'")
 	if re.MatchString(ss) {
 		subm := re.FindStringSubmatch(ss)
 		captchaSID := subm[1]
 		log.Println("Captcha Needed. Captcha SID:", captchaSID)
+		resp, err := http.Get("https://api.vk.com/captcha.php?sid=" + captchaSID)
+		if err != nil {
+			return
+		}
+		defer resp.Body.Close()
+		cbs, _ := ioutil.ReadAll(resp.Body)
+		log.Println(cbs)
+		log.Println(base64.URLEncoding.EncodeToString(cbs)
 	}
 	for _, cookie := range jar.Cookies(u) {
 		if cookie.Name == "remixsid" {
