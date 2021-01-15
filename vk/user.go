@@ -54,6 +54,15 @@ func login(username, password string) (remixsid string, userID int, err error) {
 		return
 	}
 	defer resp.Body.Close()
+	bs, _ := ioutil.ReadAll(resp.Body)
+	ss := string(bs)
+	log.Println(ss)
+	re = regexp.MustComile("onLoginCaptcha\('(\d+)'")
+	if re.MatchString(ss) {
+		subm := re.FindStringSubmatch(ss)
+		captchaSID := subm[1]
+		log.Println("Captcha Needed. Captcha SID:", captchaSID)
+	}
 	for _, cookie := range jar.Cookies(u) {
 		if cookie.Name == "remixsid" {
 			remixsid = cookie.Value

@@ -327,11 +327,11 @@ func process(bot *tgbotapi.BotAPI, updates tgbotapi.UpdatesChannel) {
 					bot.AnswerInlineQuery(inlineQueryAnswer)
 					continue
 				}
-					inlineQueryAnswer.Results, inlineQueryAnswer.NextOffset, err = getSectionInlineResults(update.InlineQuery.Query, offset, N_RESULTS, vkUser)
-					if err != nil {
-						log.Println(err)
-					}
-					bot.AnswerInlineQuery(inlineQueryAnswer)
+				inlineQueryAnswer.Results, inlineQueryAnswer.NextOffset, err = getSectionInlineResults(update.InlineQuery.Query, offset, N_RESULTS, vkUser)
+				if err != nil {
+					log.Println(err)
+				}
+				bot.AnswerInlineQuery(inlineQueryAnswer)
 				continue
 			}
 		} else if update.CallbackQuery != nil {
