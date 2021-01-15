@@ -22,3 +22,4 @@
 *.json
 # main.go
 *cache*
+captcha.b64

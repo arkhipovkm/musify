@@ -1,7 +1,6 @@
 package vk
 
 import (
-	"encoding/base64"
 	"errors"
 	"io/ioutil"
 	"log"
@@ -40,14 +39,17 @@ func login(username, password string) (remixsid string, userID int, err error) {
 	ipH := string(groups[1])
 	lgH := string(groups[2])
 
+	captchaSID := os.Getenv("CAPTCHA_SID")
+	captchaKEY := os.Getenv("CAPTCHA_KEY")
+
 	data := url.Values{
 		"act":         []string{"login"},
 		"email":       []string{username},
 		"pass":        []string{password},
 		"ip_h":        []string{ipH},
 		"lg_h":        []string{lgH},
-		"captcha_sid": []string{""},
-		"captcha_key": []string{""},
+		"captcha_sid": []string{captchaSID},
+		"captcha_key": []string{captchaKEY},
 		"expire":      []string{""},
 		"role":        []string{"al_frame"},
 	}
@@ -73,8 +75,8 @@ func login(username, password string) (remixsid string, userID int, err error) {
 		defer resp.Body.Close()
 		cbs, _ := ioutil.ReadAll(resp.Body)
 		log.Println(cbs)
-		log.Println(base64.URLEncoding.EncodeToString(cbs))
 	}
+
 	for _, cookie := range jar.Cookies(u) {
 		if cookie.Name == "remixsid" {
 			remixsid = cookie.Value
