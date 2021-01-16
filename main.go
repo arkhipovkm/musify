@@ -36,15 +36,19 @@ func main() {
 	if vkAPIAccessToken == "" {
 		panic("No VK API Access Token")
 	}
-	musifyDSN := os.Getenv("MUSIFY_DSN")
+	musifyDSN := os.Getenv("MUSIFY_SQL_DSN")
 	if musifyDSN == "" {
 		panic("No Musify MySQL DSN")
+	}
+	port := os.Getenv("PORT")
+	if port == "" {
+		panic("No PORT env variable")
 	}
 
 	go streamer.Streamer()
 	bot.Bot()
 
-	iface := ":" + os.Getenv("PORT")
+	iface := ":" + port
 	log.Printf("Serving on %s\n", iface)
 	log.Fatal(http.ListenAndServe(iface, nil))
 }

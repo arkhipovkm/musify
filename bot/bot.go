@@ -185,11 +185,6 @@ func getSectionInlineResults(query string, offset, n int, u *vk.User) (results [
 		}
 		var id string
 		id = pl.FullID()
-		// if pl.OwnerID != 0 && pl.ID != 0 && strconv.Itoa(pl.OwnerID)[:2] == "-2" && strings.Contains(strconv.Itoa(pl.OwnerID), strconv.Itoa(pl.ID)) {
-		// 	id = utils.Itoa50(pl.ID)
-		// } else {
-		// 	id = pl.FullID()
-		// }
 		switchInlineQuery := ":album " + id + " "
 		callBackData := "send-all-" + pl.FullID()
 		results = append(results, &tgbotapi.InlineQueryResultArticle{
@@ -379,12 +374,20 @@ func process(bot *tgbotapi.BotAPI, updates tgbotapi.UpdatesChannel) {
 					}
 					bot.Send(msg)
 				case "stats":
-					msg.Text = fmt.Sprintf("Cache writes: %d. Cache Reads: %d\nVK Requests: %d. VK Errors: %d, VK Auths: %d",
+					counts, err := db.GetCounts()
+					if err != nil {
+						log.Println(err)
+					}
+					msg.Text = fmt.Sprintf("Cache writes: %d. Cache Reads: %d\nVK Requests: %d. VK Errors: %d, VK Auths: %d\nUsers: %d, Chats: %d, Messages: %d, CIRs: %d",
 						atomic.LoadUint64(&utils.CacheWriteAccessCounter),
 						atomic.LoadUint64(&utils.CacheReadAccessCounter),
 						atomic.LoadUint64(&vk.VKRequestCounter),
 						atomic.LoadUint64(&vk.VKErrorCounter),
 						atomic.LoadUint64(&vk.VKAuthCounter),
+						counts.UsersCount,
+						counts.ChatsCount,
+						counts.MsgCount,
+						counts.CIRCount,
 					)
 					bot.Send(msg)
 				}
@@ -398,6 +401,7 @@ func process(bot *tgbotapi.BotAPI, updates tgbotapi.UpdatesChannel) {
 					captchaSID := subm[1]
 					captchaKey := update.Message.Text
 					log.Println("Received captcha SID and Key:", captchaSID, captchaKey)
+					utils.ClearCache(vkUser.RemixSID)
 					vkUser.Authenticate(captchaSID, captchaKey)
 				}
 			}
@@ -416,26 +420,36 @@ func Bot() {
 	if err != nil {
 		log.Panic(err)
 	}
-	bot.Debug = false
+
+	debug := false
+	debugEnv := os.Getenv("DEBUG")
+	if debugEnv != "" {
+		debug = true
+	}
+
+	bot.Debug = debug
 	log.Printf("Authenticated on Telegram Bot account %s", bot.Self.UserName)
 
-	_, err = bot.SetWebhook(tgbotapi.NewWebhook(fmt.Sprintf("https://%s.herokuapp.com/%s", os.Getenv("HEROKU_APP_NAME"), bot.Token)))
-	if err != nil {
-		log.Fatal(err)
+	var updates tgbotapi.UpdatesChannel
+	if !debug {
+		_, err = bot.SetWebhook(tgbotapi.NewWebhook(fmt.Sprintf("https://%s.herokuapp.com/%s", os.Getenv("HEROKU_APP_NAME"), bot.Token)))
+		if err != nil {
+			log.Fatal(err)
+		}
+		info, err := bot.GetWebhookInfo()
+		if err != nil {
+			log.Fatal(err)
+		}
+		if info.LastErrorDate != 0 {
+			log.Printf("Telegram callback failed: %s", info.LastErrorMessage)
+		}
+		updates = bot.ListenForWebhook("/" + bot.Token)
+	} else {
+		_, err = bot.RemoveWebhook()
+		u := tgbotapi.NewUpdate(0)
+		u.Timeout = 60
+		updates, err = bot.GetUpdatesChan(u)
 	}
-	info, err := bot.GetWebhookInfo()
-	if err != nil {
-		log.Fatal(err)
-	}
-	if info.LastErrorDate != 0 {
-		log.Printf("Telegram callback failed: %s", info.LastErrorMessage)
-	}
-	updates := bot.ListenForWebhook("/" + bot.Token)
-
-	// _, err = bot.RemoveWebhook()
-	// u := tgbotapi.NewUpdate(0)
-	// u.Timeout = 60
-	// updates, err := bot.GetUpdatesChan(u)
 
 	for w := 0; w < runtime.NumCPU()+2; w++ {
 		go process(bot, updates)

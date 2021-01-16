@@ -17,23 +17,57 @@ var DB *sql.DB
 
 func init() {
 	var err error
-	MusifyDSN := os.Getenv("MUSIFY_DSN")
-	log.Println(MusifyDSN)
-	DB, err = sql.Open(
-		"mysql",
-		MusifyDSN,
-	)
-	if err != nil {
-		log.Fatal(err)
+	MusifyDSN := os.Getenv("MUSIFY_SQL_DSN")
+	if MusifyDSN != "" {
+		DB, err = sql.Open(
+			"mysql",
+			MusifyDSN,
+		)
+		if err != nil {
+			log.Fatal(err)
+		}
+		err = DB.Ping()
+		if err != nil {
+			log.Fatal(err)
+		}
 	}
-	err = DB.Ping()
-	if err != nil {
-		log.Fatal(err)
+}
+
+type Counts struct {
+	UsersCount int
+	ChatsCount int
+	MsgCount   int
+	CIRCount   int
+}
+
+func GetCounts() (*Counts, error) {
+	var counts Counts
+	var err error
+	if DB == nil {
+		return &counts, err
 	}
+	var resp *sql.Row
+
+	resp = DB.QueryRow("SELECT COUNT(*) as UsersCount FROM users")
+	resp.Scan(&counts.UsersCount)
+
+	resp = DB.QueryRow("SELECT COUNT(*) as ChatsCount FROM chats")
+	resp.Scan(&counts.ChatsCount)
+
+	resp = DB.QueryRow("SELECT COUNT(*) as MsgCount FROM messages")
+	resp.Scan(&counts.MsgCount)
+
+	resp = DB.QueryRow("SELECT COUNT(*) as CIRCount FROM chosen_inline_results")
+	resp.Scan(&counts.CIRCount)
+
+	return &counts, err
 }
 
 func PutMessage(msg *tgbotapi.Message) error {
 	var err error
+	if DB == nil {
+		return nil
+	}
 	if msg == nil {
 		err = errors.New("Message is nil. Message will not be inserted")
 		return err
@@ -97,6 +131,9 @@ func PutMessage(msg *tgbotapi.Message) error {
 
 func PutChosenInlineResult(cir *tgbotapi.ChosenInlineResult) error {
 	var err error
+	if DB == nil {
+		return nil
+	}
 	_, err = DB.Exec("INSERT IGNORE INTO users (id, username, first_name, last_name, language_code, is_bot) VALUES (?, ?, ?, ?, ?, ?)",
 		cir.From.ID,
 		cir.From.UserName,
