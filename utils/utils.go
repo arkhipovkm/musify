@@ -11,6 +11,7 @@ import (
 	"os"
 	"path/filepath"
 	"sync/atomic"
+	"time"
 )
 
 var CacheWriteAccessCounter uint64
@@ -19,12 +20,14 @@ var CacheReadAccessCounter uint64
 var base50ConvertString []rune = []rune("abcdefghijklmnopqrstuvwxyzαβγδεζηθικλμνξοπρστυφχψω")
 var base50 int = len(base50ConvertString)
 
+var seededRand *rand.Rand = rand.New(rand.NewSource(time.Now().UnixNano()))
+
 // RandNumSeq generates a random string of number of size n
 func RandNumSeq(n int) string {
 	var letters = []rune("0123456789")
 	b := make([]rune, n)
 	for i := range b {
-		b[i] = letters[rand.Intn(len(letters))]
+		b[i] = letters[seededRand.Intn(len(letters))]
 	}
 	return string(b)
 }
@@ -34,7 +37,7 @@ func RandSeq(n int) string {
 	var letters = []rune("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ")
 	b := make([]rune, n)
 	for i := range b {
-		b[i] = letters[rand.Intn(len(letters))]
+		b[i] = letters[seededRand.Intn(len(letters))]
 	}
 	return string(b)
 }

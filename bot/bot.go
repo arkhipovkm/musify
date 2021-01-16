@@ -25,7 +25,7 @@ var vkUser *vk.User = vk.NewDefaultUser()
 
 func vkAuthLoop() {
 	for {
-		err := vkUser.Authenticate()
+		err := vkUser.Authenticate("", "")
 		if err != nil {
 			log.Panic(err)
 		}
@@ -392,6 +392,15 @@ func process(bot *tgbotapi.BotAPI, updates tgbotapi.UpdatesChannel) {
 			} else if update.Message.Audio != nil {
 				go db.PutMessageAsync(update.Message)
 				// utils.LogJSON(update.Message)
+			} else if update.Message.ReplyToMessage != nil {
+				reCaptchaURL := regexp.MustCompile("\\?sid=(.*?)$")
+				if reCaptchaURL.MatchString(update.Message.ReplyToMessage.Text) {
+					subm := reCaptchaURL.FindStringSubmatch(update.Message.ReplyToMessage.Text)
+					captchaSID := subm[1]
+					captchaKey := update.Message.Text
+					log.Println("Received captcha SID and Key:", captchaSID, captchaKey)
+					vkUser.Authenticate(captchaSID, captchaKey)
+				}
 			}
 		} else if update.ChosenInlineResult != nil {
 			go db.PutChosenInlineResult(update.ChosenInlineResult)
@@ -408,7 +417,7 @@ func Bot() {
 	if err != nil {
 		log.Panic(err)
 	}
-	bot.Debug = false
+	bot.Debug = true
 	log.Printf("Authenticated on Telegram Bot account %s", bot.Self.UserName)
 
 	_, err = bot.SetWebhook(tgbotapi.NewWebhook(fmt.Sprintf("https://%s.herokuapp.com/%s", os.Getenv("HEROKU_APP_NAME"), bot.Token)))
@@ -423,6 +432,7 @@ func Bot() {
 		log.Printf("Telegram callback failed: %s", info.LastErrorMessage)
 	}
 	updates := bot.ListenForWebhook("/" + bot.Token)
+
 	// _, err = bot.RemoveWebhook()
 	// u := tgbotapi.NewUpdate(0)
 	// u.Timeout = 60
