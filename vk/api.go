@@ -2,6 +2,7 @@ package vk
 
 import (
 	"encoding/json"
+	"errors"
 	"io/ioutil"
 	"net/http"
 	"net/url"
@@ -21,7 +22,10 @@ type ApiUser struct {
 func UsersGet(joinedIDs string) ([]*ApiUser, error) {
 	var err error
 	var users []*ApiUser
-	if ACCESS_TOKEN != "" {
+	if ACCESS_TOKEN == "" {
+		err = errors.New("No VK's Access Service Token provided in the environment. Users.Get is unavailable")
+		return users, err
+	} else {
 		URI := "https://api.vk.com/method/users.get"
 		query := url.Values{
 			"user_ids":     {joinedIDs},

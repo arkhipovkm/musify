@@ -61,10 +61,23 @@ func login(username, password, captchaSID, captchaKey string) (remixsid string, 
 	re = regexp.MustCompile("onLoginReCaptcha")
 	if re.Match(bs) {
 		newCaptchaSID := utils.RandNumSeq(14)
-		chatID, _ := strconv.Atoi(os.Getenv("TELEGRAM_OWNER_CHAT_ID"))
-		bot, _ := tgbotapi.NewBotAPI(os.Getenv("TELEGRAM_BOT_API_TOKEN"))
-		msg := tgbotapi.NewMessage(int64(chatID), "https://api.vk.com/captcha.php?sid="+newCaptchaSID)
-		bot.Send(&msg)
+		ownerChatID := os.Getenv("TELEGRAM_OWNER_CHAT_ID")
+		if ownerChatID != "" {
+			var chatID int
+			var bot *tgbotapi.BotAPI
+			chatID, err = strconv.Atoi(ownerChatID)
+			if err != nil {
+				return
+			}
+			bot, err = tgbotapi.NewBotAPI(os.Getenv("TELEGRAM_BOT_API_TOKEN"))
+			if err != nil {
+				return
+			}
+			msg := tgbotapi.NewMessage(int64(chatID), "https://api.vk.com/captcha.php?sid="+newCaptchaSID)
+			bot.Send(&msg)
+		} else {
+			log.Println("WARNING. Tried to send a Captcha but no TELEGRAM_OWNER_CHAT_ID provided in the environment")
+		}
 		return
 	}
 

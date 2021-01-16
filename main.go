@@ -21,10 +21,6 @@ func main() {
 	if telegramBotToken == "" {
 		panic("No Telegram Bot Token")
 	}
-	telegramOwnerChatID := os.Getenv("TELEGRAM_OWNER_CHAT_ID")
-	if telegramOwnerChatID == "" {
-		panic("No Telegram Owner Chat ID")
-	}
 	vkUsername := os.Getenv("VK_USERNAME")
 	if vkUsername == "" {
 		panic("No VK Username")
@@ -33,13 +29,17 @@ func main() {
 	if vkPassword == "" {
 		panic("No VK Password")
 	}
+	telegramOwnerChatID := os.Getenv("TELEGRAM_OWNER_CHAT_ID")
+	if telegramOwnerChatID == "" {
+		log.Println("WARNING. No Telegram Owner Chat ID")
+	}
 	vkAPIAccessToken := os.Getenv("VK_API_ACCESS_TOKEN")
 	if vkAPIAccessToken == "" {
-		panic("No VK API Access Token")
+		log.Println("WARNING. No VK API Access Token")
 	}
 	musifyDSN := os.Getenv("MUSIFY_SQL_DSN")
 	if musifyDSN == "" {
-		panic("No Musify MySQL DSN")
+		log.Println("WARNING. No Musify MySQL DSN")
 	}
 	debug := os.Getenv("DEBUG")
 	var port string

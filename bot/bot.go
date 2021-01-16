@@ -405,7 +405,7 @@ func process(bot *tgbotapi.BotAPI, updates tgbotapi.UpdatesChannel) {
 				msg := tgbotapi.NewMessage(update.Message.Chat.ID, "Use inline query to search music")
 				switch update.Message.Command() {
 				case "help":
-					msg.Text = "Use this bot in inline mode in any chat to search and send music"
+					msg.Text = "Use this bot in inline mode in any chat to search and send music.\n\nReply to any audio to open its menu and lyrics.\n\nVK Users, type <code>@<your VK ID or nickname></code>, e.g. <code>@musify_bot @durov</code> to open your VK music (Note that your VK music must be open to public).\n\nThis bot is open-source and is available on GitHub. Anyone can run a copy of it on its own server. Visit [home page]() for instructions."
 					switchInlineQuery := ""
 					msg.ReplyMarkup = &tgbotapi.InlineKeyboardMarkup{
 						InlineKeyboard: [][]tgbotapi.InlineKeyboardButton{{
@@ -476,24 +476,27 @@ func process(bot *tgbotapi.BotAPI, updates tgbotapi.UpdatesChannel) {
 						continue
 					}
 					if bestResult.HasLyrics {
-						// callBackData := fmt.Sprintf("lyrics-%d-%d-%d-%d", bestResult.IDArtist, bestResult.IDAlbum, bestResult.IDTrack, update.Message.ReplyToMessage.MessageID)
-						// msg.ReplyMarkup = &tgbotapi.InlineKeyboardMarkup{
-						// 	InlineKeyboard: [][]tgbotapi.InlineKeyboardButton{{
-						// 		tgbotapi.InlineKeyboardButton{
-						// 			Text:         "Lyrics",
-						// 			CallbackData: &callBackData,
-						// 		},
-						// 		tgbotapi.InlineKeyboardButton{
-						// 			Text:                         "Search Artist",
-						// 			SwitchInlineQueryCurrentChat: &switchInlineQuery,
-						// 		},
-						// 	}},
-						// }
 						rHash := os.Getenv("Telegram_RHASH")
-						lyricsURL := fmt.Sprintf("https://%s.herokuapp.com/lyrics/%d/%d/%d", os.Getenv("HEROKU_APP_NAME"), bestResult.IDArtist, bestResult.IDAlbum, bestResult.IDTrack)
-						lyricsIVURL := fmt.Sprintf("https://t.me/iv?url=%s&rhash=%s", url.PathEscape(lyricsURL), rHash)
-						msg.Text = fmt.Sprintf("[%s — %s](%s)", audio.Performer, audio.Title, lyricsIVURL)
-						msg.ParseMode = "markdown"
+						if rHash != "" {
+							lyricsURL := fmt.Sprintf("https://%s.herokuapp.com/lyrics/%d/%d/%d", os.Getenv("HEROKU_APP_NAME"), bestResult.IDArtist, bestResult.IDAlbum, bestResult.IDTrack)
+							lyricsIVURL := fmt.Sprintf("https://t.me/iv?url=%s&rhash=%s", url.PathEscape(lyricsURL), rHash)
+							msg.Text = fmt.Sprintf("[%s — %s](%s)", audio.Performer, audio.Title, lyricsIVURL)
+							msg.ParseMode = "markdown"
+						} else {
+							callBackData := fmt.Sprintf("lyrics-%d-%d-%d-%d", bestResult.IDArtist, bestResult.IDAlbum, bestResult.IDTrack, update.Message.ReplyToMessage.MessageID)
+							msg.ReplyMarkup = &tgbotapi.InlineKeyboardMarkup{
+								InlineKeyboard: [][]tgbotapi.InlineKeyboardButton{{
+									tgbotapi.InlineKeyboardButton{
+										Text:         "Lyrics",
+										CallbackData: &callBackData,
+									},
+									tgbotapi.InlineKeyboardButton{
+										Text:                         "Search Artist",
+										SwitchInlineQueryCurrentChat: &switchInlineQuery,
+									},
+								}},
+							}
+						}
 					}
 					bot.Send(msg)
 				}
