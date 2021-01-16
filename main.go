@@ -7,6 +7,7 @@ import (
 
 	"github.com/arkhipovkm/musify/bot"
 	"github.com/arkhipovkm/musify/db"
+	"github.com/arkhipovkm/musify/happidev"
 	"github.com/arkhipovkm/musify/streamer"
 )
 
@@ -40,12 +41,21 @@ func main() {
 	if musifyDSN == "" {
 		panic("No Musify MySQL DSN")
 	}
-	port := os.Getenv("PORT")
-	if port == "" {
-		panic("No PORT env variable")
-	}
+	debug := os.Getenv("DEBUG")
+	var port string
+	if debug == "" {
+		log.Println("Running in Production mode.")
+		port = os.Getenv("PORT")
+		if port == "" {
+			panic("No PORT env variable")
+		}
 
+	} else {
+		port = "8080"
+		log.Println("Running in Debug mode")
+	}
 	go streamer.Streamer()
+	go happidev.LyricsServer()
 	bot.Bot()
 
 	iface := ":" + port

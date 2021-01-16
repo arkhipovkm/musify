@@ -14,6 +14,7 @@ import (
 	"time"
 
 	"github.com/arkhipovkm/musify/db"
+	"github.com/arkhipovkm/musify/happidev"
 	"github.com/arkhipovkm/musify/utils"
 	"github.com/arkhipovkm/musify/vk"
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api"
@@ -245,9 +246,9 @@ func process(bot *tgbotapi.BotAPI, updates tgbotapi.UpdatesChannel) {
 				// Case Album+Query
 				re := regexp.MustCompile("^:album (.*?) (.*?)$")
 				if re.MatchString(update.InlineQuery.Query) {
-					subm := re.FindStringSubmatch(update.InlineQuery.Query)
-					albumID := subm[1]
-					query := subm[2]
+					parts := re.FindStringSubmatch(update.InlineQuery.Query)
+					albumID := parts[1]
+					query := parts[2]
 					inlineQueryAnswer.Results, inlineQueryAnswer.NextOffset, err = getAlbumInlineResults(albumID, offset, N_RESULTS, query, vkUser)
 					if err != nil {
 						log.Println(err)
@@ -258,8 +259,8 @@ func process(bot *tgbotapi.BotAPI, updates tgbotapi.UpdatesChannel) {
 				// Case Album
 				re = regexp.MustCompile("^:album (.*?)$")
 				if re.MatchString(update.InlineQuery.Query) {
-					subm := re.FindStringSubmatch(update.InlineQuery.Query)
-					albumID := subm[1]
+					parts := re.FindStringSubmatch(update.InlineQuery.Query)
+					albumID := parts[1]
 					inlineQueryAnswer.Results, inlineQueryAnswer.NextOffset, err = getAlbumInlineResults(albumID, offset, N_RESULTS, "", vkUser)
 					if err != nil {
 						log.Println(err)
@@ -270,9 +271,9 @@ func process(bot *tgbotapi.BotAPI, updates tgbotapi.UpdatesChannel) {
 				// Case User+Query
 				re = regexp.MustCompile("^@(.*?) (.*?)$")
 				if re.MatchString(update.InlineQuery.Query) {
-					subm := re.FindStringSubmatch(update.InlineQuery.Query)
-					userID := subm[1]
-					query := subm[2]
+					parts := re.FindStringSubmatch(update.InlineQuery.Query)
+					userID := parts[1]
+					query := parts[2]
 					log.Println("User search + Query:", query, ".")
 					searcheeUsers, err := vk.UsersGet(userID)
 					if err != nil {
@@ -298,8 +299,8 @@ func process(bot *tgbotapi.BotAPI, updates tgbotapi.UpdatesChannel) {
 				// Case user
 				re = regexp.MustCompile("^@(.*?)$")
 				if re.MatchString(update.InlineQuery.Query) {
-					subm := re.FindStringSubmatch(update.InlineQuery.Query)
-					userID := subm[1]
+					parts := re.FindStringSubmatch(update.InlineQuery.Query)
+					userID := parts[1]
 					searcheeUsers, err := vk.UsersGet(userID)
 					if err != nil {
 						log.Println(err)
@@ -330,10 +331,10 @@ func process(bot *tgbotapi.BotAPI, updates tgbotapi.UpdatesChannel) {
 			}
 		} else if update.CallbackQuery != nil {
 			bot.AnswerCallbackQuery(tgbotapi.NewCallback(update.CallbackQuery.ID, ""))
-			re := regexp.MustCompile("send-all-(.*?)$")
+			re := regexp.MustCompile("^send-all-(.*?)$")
 			if re.MatchString(update.CallbackQuery.Data) {
-				subm := re.FindStringSubmatch(update.CallbackQuery.Data)
-				albumID := subm[1]
+				parts := re.FindStringSubmatch(update.CallbackQuery.Data)
+				albumID := parts[1]
 				audioShares, err := getAudioShares(albumID, vkUser)
 				if err != nil {
 					log.Println(err)
@@ -356,6 +357,48 @@ func process(bot *tgbotapi.BotAPI, updates tgbotapi.UpdatesChannel) {
 						// utils.LogJSON(&msg)
 					}
 				}
+			}
+			re = regexp.MustCompile("^lyrics-(\\d+)-(\\d+)-(\\d+)-(\\d+)$")
+			if re.MatchString(update.CallbackQuery.Data) {
+				parts := re.FindStringSubmatch(update.CallbackQuery.Data)
+				idArtist, err := strconv.Atoi(parts[0])
+				if err != nil {
+					log.Println(err)
+					continue
+				}
+				idAlbum, err := strconv.Atoi(parts[1])
+				if err != nil {
+					log.Println(err)
+					continue
+				}
+				idTrack, err := strconv.Atoi(parts[2])
+				if err != nil {
+					log.Println(err)
+					continue
+				}
+				replyToMessageID, err := strconv.Atoi(parts[4])
+				if err != nil {
+					log.Println(err)
+					continue
+				}
+				lyrics, err := happidev.GetLyrics(idArtist, idAlbum, idTrack)
+				if err != nil {
+					log.Println(err)
+					continue
+				}
+				var chatID int64
+				if update.CallbackQuery.Message != nil &&
+					update.CallbackQuery.Message.Chat != nil &&
+					update.CallbackQuery.Message.Chat.ID != 0 {
+					chatID = update.CallbackQuery.Message.Chat.ID
+				} else if update.CallbackQuery.From != nil {
+					chatID = int64(update.CallbackQuery.From.ID)
+				} else {
+					continue
+				}
+				msg := tgbotapi.NewMessage(chatID, lyrics.Lyrics)
+				msg.ReplyToMessageID = replyToMessageID
+				bot.Send(msg)
 			}
 		} else if update.Message != nil {
 			if update.Message.IsCommand() {
@@ -397,12 +440,56 @@ func process(bot *tgbotapi.BotAPI, updates tgbotapi.UpdatesChannel) {
 			} else if update.Message.ReplyToMessage != nil {
 				reCaptchaURL := regexp.MustCompile("\\?sid=(.*?)$")
 				if reCaptchaURL.MatchString(update.Message.ReplyToMessage.Text) {
-					subm := reCaptchaURL.FindStringSubmatch(update.Message.ReplyToMessage.Text)
-					captchaSID := subm[1]
+					parts := reCaptchaURL.FindStringSubmatch(update.Message.ReplyToMessage.Text)
+					captchaSID := parts[1]
 					captchaKey := update.Message.Text
 					log.Println("Received captcha SID and Key:", captchaSID, captchaKey)
 					utils.ClearCache(vkUser.RemixSID)
 					vkUser.Authenticate(captchaSID, captchaKey)
+				} else if update.Message.ReplyToMessage.Audio != nil {
+					audio := update.Message.ReplyToMessage.Audio
+					searchResults, err := happidev.Search(fmt.Sprintf("%s %s", audio.Performer, audio.Title))
+					if err != nil {
+						log.Println(err)
+						continue
+					}
+					bestResult, err := happidev.FindBestMatch(audio.Performer, audio.Title, searchResults)
+					if err != nil {
+						log.Println(err)
+						continue
+					}
+					msg := tgbotapi.NewMessage(
+						update.Message.Chat.ID,
+						fmt.Sprintf("%s — %s", audio.Performer, audio.Title),
+					)
+					msg.ReplyToMessageID = update.Message.ReplyToMessage.MessageID
+
+					switchInlineQuery := audio.Performer + " "
+					if bestResult.HasLyrics {
+						callBackData := fmt.Sprintf("lyrics-%d-%d-%d-%d", bestResult.IDArtist, bestResult.IDAlbum, bestResult.IDTrack, update.Message.ReplyToMessage.MessageID)
+						msg.ReplyMarkup = &tgbotapi.InlineKeyboardMarkup{
+							InlineKeyboard: [][]tgbotapi.InlineKeyboardButton{{
+								tgbotapi.InlineKeyboardButton{
+									Text:         "Lyrics",
+									CallbackData: &callBackData,
+								},
+								tgbotapi.InlineKeyboardButton{
+									Text:                         "Search Artist",
+									SwitchInlineQueryCurrentChat: &switchInlineQuery,
+								},
+							}},
+						}
+					} else {
+						msg.ReplyMarkup = &tgbotapi.InlineKeyboardMarkup{
+							InlineKeyboard: [][]tgbotapi.InlineKeyboardButton{{
+								tgbotapi.InlineKeyboardButton{
+									Text:                         "Search Artist",
+									SwitchInlineQueryCurrentChat: &switchInlineQuery,
+								},
+							}},
+						}
+					}
+					bot.Send(msg)
 				}
 			}
 		} else if update.ChosenInlineResult != nil {
