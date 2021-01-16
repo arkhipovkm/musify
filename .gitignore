@@ -23,3 +23,5 @@
 # main.go
 *cache*
 captcha.b64
+.buildpacks
+!app.json
