@@ -18,7 +18,12 @@ var TEMPLATE string = `
     <body>
         <h1>{{Title}}</h1>
         <h2>{{Subtitle}}</h2>
-        {{Content}}
+        <div class="cover">
+            <img src="{{Cover}}">
+        </div>
+        <div class="content">
+            {{Content}}
+        </body>
     </body>
 </html>`
 
@@ -80,6 +85,7 @@ func handler(w http.ResponseWriter, r *http.Request) {
 	reTitle := regexp.MustCompile("\\{\\{Title\\}}")
 	reSubtitle := regexp.MustCompile("\\{\\{Subtitle\\}\\}")
 	reContent := regexp.MustCompile("\\{\\{Content\\}\\}")
+	reCover := regexp.MustCompile("\\{\\{Cover\\}\\}")
 
 	title := []byte(fmt.Sprintf(lyrics.Track))
 	body = reTitle.ReplaceAll(body, title)
@@ -89,6 +95,9 @@ func handler(w http.ResponseWriter, r *http.Request) {
 
 	bcontent := []byte(content)
 	body = reContent.ReplaceAll(body, bcontent)
+
+	cover := []byte("https://api.happi.dev/v1/music/cover/" + parts[1])
+	body = reCover.ReplaceAll(body, cover)
 
 	w.Header().Add("Content-Type", "text/html")
 	w.Write(body)
