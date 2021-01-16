@@ -83,7 +83,7 @@ func Search(q string) ([]*SearchResponseResult, error) {
 	var err error
 	var result []*SearchResponseResult
 	query := make(url.Values)
-	query.Add("q", url.QueryEscape(q))
+	query.Add("q", q)
 	query.Add("type", "track")
 
 	uri := API_ENDPOINT + "?" + query.Encode()

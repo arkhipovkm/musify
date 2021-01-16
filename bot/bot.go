@@ -448,46 +448,52 @@ func process(bot *tgbotapi.BotAPI, updates tgbotapi.UpdatesChannel) {
 					vkUser.Authenticate(captchaSID, captchaKey)
 				} else if update.Message.ReplyToMessage.Audio != nil {
 					audio := update.Message.ReplyToMessage.Audio
-					searchResults, err := happidev.Search(fmt.Sprintf("%s %s", audio.Performer, audio.Title))
-					if err != nil {
-						log.Println(err)
-						continue
-					}
-					bestResult, err := happidev.FindBestMatch(audio.Performer, audio.Title, searchResults)
-					if err != nil {
-						log.Println(err)
-						continue
-					}
 					msg := tgbotapi.NewMessage(
 						update.Message.Chat.ID,
 						fmt.Sprintf("%s — %s", audio.Performer, audio.Title),
 					)
 					msg.ReplyToMessageID = update.Message.ReplyToMessage.MessageID
-
 					switchInlineQuery := audio.Performer + " "
+					msg.ReplyMarkup = &tgbotapi.InlineKeyboardMarkup{
+						InlineKeyboard: [][]tgbotapi.InlineKeyboardButton{{
+							tgbotapi.InlineKeyboardButton{
+								Text:                         "Search Artist",
+								SwitchInlineQueryCurrentChat: &switchInlineQuery,
+							},
+						}},
+					}
+
+					searchResults, err := happidev.Search(fmt.Sprintf("%s %s", audio.Performer, audio.Title))
+					if err != nil {
+						log.Println(err)
+						bot.Send(msg)
+						continue
+					}
+					bestResult, err := happidev.FindBestMatch(audio.Performer, audio.Title, searchResults)
+					if err != nil {
+						log.Println(err)
+						bot.Send(msg)
+						continue
+					}
 					if bestResult.HasLyrics {
-						callBackData := fmt.Sprintf("lyrics-%d-%d-%d-%d", bestResult.IDArtist, bestResult.IDAlbum, bestResult.IDTrack, update.Message.ReplyToMessage.MessageID)
-						msg.ReplyMarkup = &tgbotapi.InlineKeyboardMarkup{
-							InlineKeyboard: [][]tgbotapi.InlineKeyboardButton{{
-								tgbotapi.InlineKeyboardButton{
-									Text:         "Lyrics",
-									CallbackData: &callBackData,
-								},
-								tgbotapi.InlineKeyboardButton{
-									Text:                         "Search Artist",
-									SwitchInlineQueryCurrentChat: &switchInlineQuery,
-								},
-							}},
-						}
-					} else {
-						msg.ReplyMarkup = &tgbotapi.InlineKeyboardMarkup{
-							InlineKeyboard: [][]tgbotapi.InlineKeyboardButton{{
-								tgbotapi.InlineKeyboardButton{
-									Text:                         "Search Artist",
-									SwitchInlineQueryCurrentChat: &switchInlineQuery,
-								},
-							}},
-						}
+						// callBackData := fmt.Sprintf("lyrics-%d-%d-%d-%d", bestResult.IDArtist, bestResult.IDAlbum, bestResult.IDTrack, update.Message.ReplyToMessage.MessageID)
+						// msg.ReplyMarkup = &tgbotapi.InlineKeyboardMarkup{
+						// 	InlineKeyboard: [][]tgbotapi.InlineKeyboardButton{{
+						// 		tgbotapi.InlineKeyboardButton{
+						// 			Text:         "Lyrics",
+						// 			CallbackData: &callBackData,
+						// 		},
+						// 		tgbotapi.InlineKeyboardButton{
+						// 			Text:                         "Search Artist",
+						// 			SwitchInlineQueryCurrentChat: &switchInlineQuery,
+						// 		},
+						// 	}},
+						// }
+						rHash := os.Getenv("Telegram_RHASH")
+						lyricsURL := fmt.Sprintf("https://%s.herokuapp.com/lyrics/%d/%d/%d", os.Getenv("HEROKU_APP_NAME"), bestResult.IDArtist, bestResult.IDAlbum, bestResult.IDTrack)
+						lyricsIVURL := fmt.Sprintf("https://t.me/iv?url=%s&rhash=%s", url.PathEscape(lyricsURL), rHash)
+						msg.Text = fmt.Sprintf("[%s — %s](%s)", audio.Performer, audio.Title, lyricsIVURL)
+						msg.ParseMode = "markdown"
 					}
 					bot.Send(msg)
 				}
