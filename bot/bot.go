@@ -30,7 +30,6 @@ func vkAuthLoop() {
 			log.Panic(err)
 		}
 
-		log.Printf("Authenticated on VK Account: %d\n", vkUser.ID)
 		time.Sleep(12 * time.Hour)
 		utils.ClearCache(vkUser.RemixSID)
 	}
@@ -417,7 +416,7 @@ func Bot() {
 	if err != nil {
 		log.Panic(err)
 	}
-	bot.Debug = true
+	bot.Debug = false
 	log.Printf("Authenticated on Telegram Bot account %s", bot.Self.UserName)
 
 	_, err = bot.SetWebhook(tgbotapi.NewWebhook(fmt.Sprintf("https://%s.herokuapp.com/%s", os.Getenv("HEROKU_APP_NAME"), bot.Token)))
@@ -437,6 +436,7 @@ func Bot() {
 	// u := tgbotapi.NewUpdate(0)
 	// u.Timeout = 60
 	// updates, err := bot.GetUpdatesChan(u)
+
 	for w := 0; w < runtime.NumCPU()+2; w++ {
 		go process(bot, updates)
 	}

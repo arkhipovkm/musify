@@ -20,6 +20,10 @@ func main() {
 	if telegramBotToken == "" {
 		panic("No Telegram Bot Token")
 	}
+	telegramOwnerChatID := os.Getenv("TELEGRAM_OWNER_CHAT_ID")
+	if telegramOwnerChatID == "" {
+		panic("No Telegram Owner Chat ID")
+	}
 	vkUsername := os.Getenv("VK_USERNAME")
 	if vkUsername == "" {
 		panic("No VK Username")

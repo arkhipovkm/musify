@@ -66,14 +66,6 @@ func login(username, password, captchaSID, captchaKey string) (remixsid string, 
 		msg := tgbotapi.NewMessage(int64(chatID), "https://api.vk.com/captcha.php?sid="+newCaptchaSID)
 		bot.Send(&msg)
 		return
-		// log.Println("Captcha Needed. Captcha SID:", captchaSID)
-		// resp, err = http.Get("https://api.vk.com/captcha.php?sid=" + captchaSID)
-		// if err != nil {
-		// 	return
-		// }
-		// defer resp.Body.Close()
-		// cbs, _ := ioutil.ReadAll(resp.Body)
-		// log.Println(cbs)
 	}
 
 	for _, cookie := range jar.Cookies(u) {
@@ -106,6 +98,7 @@ type User struct {
 func (u *User) Authenticate(captchaSID, captchaKey string) error {
 	var err error
 	u.RemixSID, u.ID, err = login(u.login, u.password, captchaSID, captchaKey)
+	log.Printf("Authenticated on VK Account: %d\n", u.ID)
 	atomic.AddUint64(&VKAuthCounter, 1)
 	return err
 }
