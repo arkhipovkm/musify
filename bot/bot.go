@@ -440,26 +440,28 @@ func process(bot *tgbotapi.BotAPI, updates tgbotapi.UpdatesChannel) {
 				// utils.LogJSON(update.Message)
 			} else if update.Message.ReplyToMessage != nil {
 				reCaptchaURL := regexp.MustCompile("\\?sid=(.*?)$")
-				entities := *update.Message.ReplyToMessage.Entities
-				var ent tgbotapi.MessageEntity
-				if len(entities) == 0 {
-					continue
-				} else {
-					ent = entities[0]
-				}
-				if reCaptchaURL.MatchString(ent.URL) {
-					parts := reCaptchaURL.FindStringSubmatch(ent.URL)
-					captchaSID := parts[1]
-					captchaKey := update.Message.Text
-					log.Println("Received captcha SID and Key:", captchaSID, captchaKey)
-					utils.ClearCache(vkUser.RemixSID)
-					err = vkUser.Authenticate(captchaSID, captchaKey)
+				if update.Message.ReplyToMessage.Entities != nil {
+					entities := *update.Message.ReplyToMessage.Entities
+					var ent tgbotapi.MessageEntity
+					if len(entities) == 0 {
+						continue
+					} else {
+						ent = entities[0]
+					}
+					if reCaptchaURL.MatchString(ent.URL) {
+						parts := reCaptchaURL.FindStringSubmatch(ent.URL)
+						captchaSID := parts[1]
+						captchaKey := update.Message.Text
+						log.Println("Received captcha SID and Key:", captchaSID, captchaKey)
+						utils.ClearCache(vkUser.RemixSID)
+						err = vkUser.Authenticate(captchaSID, captchaKey)
 
-					var msg tgbotapi.MessageConfig
-					if err == nil {
-						msg = tgbotapi.NewMessage(update.Message.Chat.ID, "Successful login 💪")
-						msg.ReplyToMessageID = update.Message.MessageID
-						bot.Send(&msg)
+						var msg tgbotapi.MessageConfig
+						if err == nil {
+							msg = tgbotapi.NewMessage(update.Message.Chat.ID, "Successful login 💪")
+							msg.ReplyToMessageID = update.Message.MessageID
+							bot.Send(&msg)
+						}
 					}
 				} else if update.Message.ReplyToMessage.Audio != nil {
 					audio := update.Message.ReplyToMessage.Audio
