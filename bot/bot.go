@@ -439,12 +439,13 @@ func process(bot *tgbotapi.BotAPI, updates tgbotapi.UpdatesChannel) {
 				go db.PutMessageAsync(update.Message)
 				// utils.LogJSON(update.Message)
 			} else if update.Message.ReplyToMessage != nil {
-				reCaptchaURL := regexp.MustCompile("\\?sid=(\\d+)$")
+				reCaptchaURL := regexp.MustCompile("\\?sid=(.*?)$")
 				entities := *update.Message.ReplyToMessage.Entities
 				var ent tgbotapi.MessageEntity
 				if len(entities) == 0 {
-					ent = entities[0]
 					continue
+				} else {
+					ent = entities[0]
 				}
 				if reCaptchaURL.MatchString(ent.URL) {
 					parts := reCaptchaURL.FindStringSubmatch(update.Message.ReplyToMessage.Text)
