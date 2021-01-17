@@ -60,7 +60,10 @@ func main() {
 		}
 
 	} else {
-		port = "8080"
+		port = os.Getenv("PORT")
+		if port == "" {
+			port = "8080"
+		}
 		log.Println("Running in Debug mode")
 	}
 	go streamer.Streamer()
