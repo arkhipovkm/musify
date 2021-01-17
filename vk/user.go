@@ -115,7 +115,16 @@ type User struct {
 func (u *User) Authenticate(captchaSID, captchaKey string) error {
 	var err error
 	u.RemixSID, u.ID, err = login(u.login, u.password, captchaSID, captchaKey)
-	log.Printf("Authenticated on VK Account: %d\n", u.ID)
+	strID := strconv.Itoa(u.ID)
+	var starredID string
+	if u.ID != 0 {
+		for i := 0; i < len([]rune(strID)); i++ {
+			starredID += "*"
+		}
+	} else {
+		starredID = "auth failed"
+	}
+	log.Printf("Authenticated on VK Account: %s\n", starredID)
 	atomic.AddUint64(&VKAuthCounter, 1)
 	return err
 }
