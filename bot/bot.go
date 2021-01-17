@@ -405,8 +405,8 @@ func process(bot *tgbotapi.BotAPI, updates tgbotapi.UpdatesChannel) {
 				msg := tgbotapi.NewMessage(update.Message.Chat.ID, "Use inline query to search music")
 				switch update.Message.Command() {
 				case "help":
-					msg.Text = "Use this bot in inline mode in any chat to search and send music.\n\nReply to any audio to open its menu and lyrics.\n\nVK Users, type <code>@<your VK ID or nickname></code>, e.g. <code>@musify_bot @durov</code> to open your VK music (Note that your VK music must be open to public).\n\nThis bot is open-source and is available on GitHub. Anyone can run a copy of it on its own server. Visit [home page]() for instructions."
-					msg.ParseMode = "HTML"
+					msg.Text = "Use this bot in inline mode in any chat to search and send music.\n\nReply to any audio to open its menu and lyrics.\n\nVK Users, type `@<your VK ID or nickname>`, e.g. `@musify_bot @durov` to open your VK music (Note that your VK music must be open to public).\n\nThis bot is open-source and is available on GitHub. Anyone can run a copy of it on its own server. Visit [home page]() for instructions."
+					msg.ParseMode = "markdown"
 					switchInlineQuery := ""
 					msg.ReplyMarkup = &tgbotapi.InlineKeyboardMarkup{
 						InlineKeyboard: [][]tgbotapi.InlineKeyboardButton{{
