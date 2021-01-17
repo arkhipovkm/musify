@@ -24,9 +24,12 @@ import (
 var N_RESULTS int = 10
 var vkUser *vk.User = vk.NewDefaultUser()
 
+var CaptchaSID string
+var CaptchaKey string
+
 func vkAuthLoop() {
 	for {
-		err := vkUser.Authenticate("", "")
+		err := vkUser.Authenticate(CaptchaSID, CaptchaKey)
 		if err != nil {
 			log.Println(err)
 		}
@@ -451,11 +454,11 @@ func process(bot *tgbotapi.BotAPI, updates tgbotapi.UpdatesChannel) {
 					}
 					if reCaptchaURL.MatchString(ent.URL) {
 						parts := reCaptchaURL.FindStringSubmatch(ent.URL)
-						captchaSID := parts[1]
-						captchaKey := update.Message.Text
-						log.Println("Received captcha SID and Key:", captchaSID, captchaKey)
+						CaptchaSID = parts[1]
+						CaptchaKey = update.Message.Text
+						log.Println("Received captcha SID and Key:", CaptchaSID, CaptchaKey)
 						utils.ClearCache(vkUser.RemixSID)
-						err = vkUser.Authenticate(captchaSID, captchaKey)
+						err = vkUser.Authenticate(CaptchaSID, CaptchaKey)
 
 						var msg tgbotapi.MessageConfig
 						if err == nil {

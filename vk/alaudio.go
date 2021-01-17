@@ -61,20 +61,24 @@ var audioItemIndex = map[string]int{
 
 func checkVKError(outerArray []interface{}) error {
 	var err error
-	switch vkErr := outerArray[0].(type) {
-	case string:
-		vkErrI, _ := strconv.Atoi(vkErr)
-		if vkErrI > 0 {
-			err = fmt.Errorf("VK Error : %d", vkErrI)
-			atomic.AddUint64(&VKErrorCounter, 1)
+	if len(outerArray) > 0 {
+		switch vkErr := outerArray[0].(type) {
+		case string:
+			vkErrI, _ := strconv.Atoi(vkErr)
+			if vkErrI > 0 {
+				err = fmt.Errorf("VK Error : %d", vkErrI)
+				atomic.AddUint64(&VKErrorCounter, 1)
+			}
+		case int:
+			if vkErr > 0 {
+				err = fmt.Errorf("VK Error: %d", vkErr)
+				atomic.AddUint64(&VKErrorCounter, 1)
+			}
 		}
-	case int:
-		if vkErr > 0 {
-			err = fmt.Errorf("VK Error: %d", vkErr)
-			atomic.AddUint64(&VKErrorCounter, 1)
-		}
+		atomic.AddUint64(&VKRequestCounter, 1)
+	} else {
+		err = fmt.Errorf("Unknown VK Error (outerArray is empty)")
 	}
-	atomic.AddUint64(&VKRequestCounter, 1)
 	return err
 }
 
