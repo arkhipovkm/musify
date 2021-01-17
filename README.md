@@ -23,7 +23,8 @@ Your vk.com account's password. This remains totally secret inside your heroku d
 [Service token](https://vk.com/dev/access_token) of any app on vk.com. Used for recognition of vk.com nicknames e.g. @durov (Extra bot feature: one can use their VK's playlist in Telegram using the bot if their music is public). You can create a dummy **standalone** VK's application [here](https://vk.com/editapp?act=create) and use its service (not to confuse with account token) token. This functionality will not be available if you leave this variable empty
 
 - TELEGRAM_OWNER_CHAT_ID  
-ChatID of your account in Telegram. Bot will send you some error logs as well as captcha inquires in an unlikely case it is needed to login on vk.com. This functionality will not be available if you leave this variable empty
+**required**  
+ChatID of your account in Telegram. Bot will send you some error logs as well as captcha inquires in an unlikely case it is needed to login on vk.com. [How to get your Chat ID](https://sean-bradley.medium.com/get-telegram-chat-id-80b575520659)
 
 - HAPPIDEV_API_TOKEN  
 [Happi.dev](https://happi.dev/docs/music) API token. Used for lyrics search. Simply register on happi.dev (it's free) to get a token. This functionality will not be available if you leave this variable empty

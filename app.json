@@ -5,6 +5,10 @@
     "logo": "https://cdn4.telesco.pe/file/bUEdVY3x5ru-C0O1kW7Z8JYSQjP44nIAwKQByIYwrRuZcW5PVYlxiJS-L5XQTrX-ulIbsdQeBNelYrafk--ocRO4TwEYXyqPQlFHJSiv7EHlLMzOdb9G1gMHnACN7Plqk5JViqEqdWHzfeXLXjkiG6K3SAuSmFZzH3T5HpS6BowDvN6skCa6i88ey1nq2LmMMGSNSz2lq__DIqApbeaPFdHO6wx4DjyEXRoPX1wIBdhfCrkdXrNDh9DaqW5cAeB75x12-Qkmhc65F71J0EPZZkgF_Bnr4JWyHiqwEKCS0pqardewtfL-SFyDM1mR5zIXzNvCjPLYzyJ7480HeFlo_g.jpg",
     "keywords": ["telegram", "bot", "music", "vk.com"],
     "env": {
+        "HEROKU_APP_NAME": {
+            "description": "This app name. Copy and paste here the name of you app. Alternatively, enable LABS (dyno-metadata) features in your project later, but will require CLI commnad.",
+            "required": true
+        },
         "TELEGRAM_BOT_API_TOKEN": {
             "required": true,
             "description": "Telegram Bot token received from the Telegram's BotFather"
@@ -22,7 +26,7 @@
             "description": "Service token of any app on vk.com. Used for recognition of vk.com nicknames e.g. @durov. This functionality will not be available if you leave this variable empty"
         },
         "TELEGRAM_OWNER_CHAT_ID": {
-            "required": false,
+            "required": true,
             "description": "ChatID of your account in Telegram. Bot will send you some error logs as well as captcha inquires in an unlikely case it is needed to login on vk.com. This functionality will not be available if you leave this variable empty"
         },
         "HAPPIDEV_API_TOKEN": {

@@ -2,6 +2,7 @@ package vk
 
 import (
 	"errors"
+	"fmt"
 	"io/ioutil"
 	"log"
 	"net/http"
@@ -73,12 +74,14 @@ func login(username, password, captchaSID, captchaKey string) (remixsid string, 
 			if err != nil {
 				return
 			}
-			msg := tgbotapi.NewMessage(int64(chatID), "https://api.vk.com/captcha.php?sid="+newCaptchaSID)
+			msg := tgbotapi.NewMessage(int64(chatID), fmt.Sprintf("Please, resolve the [Captcha](https://api.vk.com/captcha.php?sid=%s) to sign in to VK:", newCaptchaSID))
 			bot.Send(&msg)
+			err = errors.New("Auth failed. Captcha is required. Please, respond to captcha message in telegram to retry")
+			return
 		} else {
-			log.Println("WARNING. Tried to send a Captcha but no TELEGRAM_OWNER_CHAT_ID provided in the environment")
+			err = errors.New("WARNING. Tried to send a Captcha but no TELEGRAM_OWNER_CHAT_ID provided in the environment")
+			return
 		}
-		return
 	}
 
 	for _, cookie := range jar.Cookies(u) {

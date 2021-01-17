@@ -31,7 +31,7 @@ func main() {
 	}
 	telegramOwnerChatID := os.Getenv("TELEGRAM_OWNER_CHAT_ID")
 	if telegramOwnerChatID == "" {
-		log.Println("WARNING. No Telegram Owner Chat ID")
+		panic("No Telegram Owner Chat ID")
 	}
 	vkAPIAccessToken := os.Getenv("VK_API_ACCESS_TOKEN")
 	if vkAPIAccessToken == "" {
@@ -41,6 +41,15 @@ func main() {
 	if musifyDSN == "" {
 		log.Println("WARNING. No Musify MySQL DSN")
 	}
+	happiDev := os.Getenv("HAPPIDEV_API_TOKEN")
+	if happiDev == "" {
+		log.Println("WARNING. No HappiDev API Token. Lyrics will be unavailable.")
+	}
+	tgRhash := os.Getenv("TELEGRAM_RHASH")
+	if tgRhash == "" {
+		log.Println("WARNING. No Telegram InstantView RHash. Lyrics will not be available thru InstantView")
+	}
+
 	debug := os.Getenv("DEBUG")
 	var port string
 	if debug == "" {
