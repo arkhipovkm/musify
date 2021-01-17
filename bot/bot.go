@@ -360,23 +360,23 @@ func process(bot *tgbotapi.BotAPI, updates tgbotapi.UpdatesChannel) {
 			}
 			re = regexp.MustCompile("^lyrics-(\\d+)-(\\d+)-(\\d+)-(\\d+)$")
 			if re.MatchString(update.CallbackQuery.Data) {
-				parts := re.FindStringSubmatch(update.CallbackQuery.Data)
-				idArtist, err := strconv.Atoi(parts[0])
+				subm := re.FindStringSubmatch(update.CallbackQuery.Data)
+				idArtist, err := strconv.Atoi(subm[1])
 				if err != nil {
 					log.Println(err)
 					continue
 				}
-				idAlbum, err := strconv.Atoi(parts[1])
+				idAlbum, err := strconv.Atoi(subm[2])
 				if err != nil {
 					log.Println(err)
 					continue
 				}
-				idTrack, err := strconv.Atoi(parts[2])
+				idTrack, err := strconv.Atoi(subm[3])
 				if err != nil {
 					log.Println(err)
 					continue
 				}
-				replyToMessageID, err := strconv.Atoi(parts[4])
+				replyToMessageID, err := strconv.Atoi(subm[4])
 				if err != nil {
 					log.Println(err)
 					continue
@@ -493,7 +493,7 @@ func process(bot *tgbotapi.BotAPI, updates tgbotapi.UpdatesChannel) {
 						continue
 					}
 					if bestResult.HasLyrics {
-						rHash := os.Getenv("Telegram_RHASH")
+						rHash := os.Getenv("TELEGRAM_RHASH")
 						if rHash != "" {
 							lyricsURL := fmt.Sprintf("https://%s.herokuapp.com/lyrics/%d/%d/%d", os.Getenv("HEROKU_APP_NAME"), bestResult.IDArtist, bestResult.IDAlbum, bestResult.IDTrack)
 							lyricsIVURL := fmt.Sprintf("https://t.me/iv?url=%s&rhash=%s", url.PathEscape(lyricsURL), rHash)
