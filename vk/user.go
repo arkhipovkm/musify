@@ -74,7 +74,7 @@ func login(username, password, captchaSID, captchaKey string) (remixsid string, 
 			if err != nil {
 				return
 			}
-			msg := tgbotapi.NewMessage(int64(chatID), fmt.Sprintf("Please, resolve the [Captcha](https://api.vk.com/captcha.php?sid=%s) to sign in to VK:", newCaptchaSID))
+			msg := tgbotapi.NewMessage(int64(chatID), fmt.Sprintf("Please, resolve the captcha to sign in to VK[:](https://api.vk.com/captcha.php?sid=%s)", newCaptchaSID))
 			msg.ParseMode = "markdown"
 			bot.Send(&msg)
 			err = errors.New("Auth failed. Captcha is required. Please, respond to captcha message in telegram to retry")

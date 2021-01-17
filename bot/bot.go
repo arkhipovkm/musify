@@ -440,7 +440,13 @@ func process(bot *tgbotapi.BotAPI, updates tgbotapi.UpdatesChannel) {
 				// utils.LogJSON(update.Message)
 			} else if update.Message.ReplyToMessage != nil {
 				reCaptchaURL := regexp.MustCompile("\\?sid=(\\d+)\\)")
-				if reCaptchaURL.MatchString(update.Message.ReplyToMessage.Text) {
+				entities := *update.Message.ReplyToMessage.Entities
+				var ent tgbotapi.MessageEntity
+				if len(entities) == 0 {
+					ent = entities[0]
+					continue
+				}
+				if reCaptchaURL.MatchString(ent.URL) {
 					parts := reCaptchaURL.FindStringSubmatch(update.Message.ReplyToMessage.Text)
 					captchaSID := parts[1]
 					captchaKey := update.Message.Text
@@ -452,8 +458,7 @@ func process(bot *tgbotapi.BotAPI, updates tgbotapi.UpdatesChannel) {
 					if err == nil {
 						msg = tgbotapi.NewMessage(update.Message.Chat.ID, "Successful login 💪")
 						msg.ReplyToMessageID = update.Message.MessageID
-					} else {
-
+						bot.Send(&msg)
 					}
 				} else if update.Message.ReplyToMessage.Audio != nil {
 					audio := update.Message.ReplyToMessage.Audio
