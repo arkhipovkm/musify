@@ -448,7 +448,7 @@ func process(bot *tgbotapi.BotAPI, updates tgbotapi.UpdatesChannel) {
 					ent = entities[0]
 				}
 				if reCaptchaURL.MatchString(ent.URL) {
-					parts := reCaptchaURL.FindStringSubmatch(update.Message.ReplyToMessage.Text)
+					parts := reCaptchaURL.FindStringSubmatch(ent.URL)
 					captchaSID := parts[1]
 					captchaKey := update.Message.Text
 					log.Println("Received captcha SID and Key:", captchaSID, captchaKey)
