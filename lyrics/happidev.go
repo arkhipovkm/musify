@@ -1,4 +1,4 @@
-package happidev
+package lyrics
 
 import (
 	"encoding/json"
@@ -79,7 +79,7 @@ func httpGET(uri string) (*http.Response, error) {
 	return resp, err
 }
 
-func Search(q string) ([]*SearchResponseResult, error) {
+func HappiSearch(q string) ([]*SearchResponseResult, error) {
 	var err error
 	var result []*SearchResponseResult
 	query := make(url.Values)
@@ -118,7 +118,7 @@ func Search(q string) ([]*SearchResponseResult, error) {
 	return result, err
 }
 
-func GetLyrics(idArtist, idAlbum, idTrack int) (*LyricsResponseResult, error) {
+func HappiGetLyrics(idArtist, idAlbum, idTrack int) (*LyricsResponseResult, error) {
 	var err error
 	var lyrics *LyricsResponseResult
 	uri := fmt.Sprintf("%s/artists/%d/albums/%d/tracks/%d/lyrics",
@@ -153,7 +153,7 @@ func GetLyrics(idArtist, idAlbum, idTrack int) (*LyricsResponseResult, error) {
 	return lyrics, err
 }
 
-func FindBestMatch(performer, title string, results []*SearchResponseResult) (*SearchResponseResult, error) {
+func HappiFindBestMatch(performer, title string, results []*SearchResponseResult) (*SearchResponseResult, error) {
 	var err error
 	var result *SearchResponseResult
 	if len(results) == 0 {

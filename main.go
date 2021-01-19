@@ -7,7 +7,7 @@ import (
 
 	"github.com/arkhipovkm/musify/bot"
 	"github.com/arkhipovkm/musify/db"
-	"github.com/arkhipovkm/musify/happidev"
+	"github.com/arkhipovkm/musify/lyrics"
 	"github.com/arkhipovkm/musify/streamer"
 )
 
@@ -67,7 +67,10 @@ func main() {
 		log.Println("Running in Debug mode")
 	}
 	go streamer.Streamer()
-	go happidev.LyricsServer()
+	go streamer.TgFileServer()
+	go lyrics.HappiDevLyricsServer()
+	go lyrics.AuddDirectLyricsServer()
+
 	bot.Bot()
 
 	iface := ":" + port

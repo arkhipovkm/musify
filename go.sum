@@ -1,5 +1,10 @@
+github.com/AudDMusic/audd-go v0.2.0 h1:eeX/VBAPGPRDVU0QeRxhVeLI/ZJ/s+hZuQv6afC4Ehc=
+github.com/AudDMusic/audd-go v0.2.0/go.mod h1:/CFkQmoAbZqPEQvCTo+G42qOuoLjZnQSlBwYVhRPfcU=
+github.com/Mihonarium/golongpoll v1.2.0 h1:VU5xi0fivNMjBbCUuobO9gl5UXLbv5n4lbEvqnDAbKQ=
+github.com/Mihonarium/golongpoll v1.2.0/go.mod h1:/WQya0ObrWZhOvqig6ZdKENj7B01FXSdIHbyCcnE1ok=
 github.com/arkhipovkm/id3-go v0.0.0-20200427115145-3af349cca3cf h1:pVJ0ELWlqg3fmmlh4P/v8kmbl7rieaaHvL/pi59kFNY=
 github.com/arkhipovkm/id3-go v0.0.0-20200427115145-3af349cca3cf/go.mod h1:i+AZieZ+8SWzwXTzxWVIsK3K6PlP/hiMhYVPIpE5ZYI=
+github.com/bogem/id3v2 v1.2.0/go.mod h1:t78PK5AQ56Q47kizpYiV6gtjj3jfxlz87oFpty8DYs8=
 github.com/go-sql-driver/mysql v1.5.0 h1:ozyZYNQW3x3HtqT1jira07DN2PArx2v7/mN66gGcHOs=
 github.com/go-sql-driver/mysql v1.5.0/go.mod h1:DCzpHaOWr8IXmIStZouvnhqoel9Qv2LBy8hT2VhHyBg=
 github.com/go-telegram-bot-api/telegram-bot-api v1.0.0 h1:HXVtsZ+yINQeyyhPFAUU4yKmeN+iFhJ87jXZOC016gs=
