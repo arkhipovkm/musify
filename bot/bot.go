@@ -648,7 +648,7 @@ func process(bot *tgbotapi.BotAPI, updates tgbotapi.UpdatesChannel) {
 							albumID := strconv.Itoa(bestResult.IDAlbum)
 							encodedCoverURL = base64.URLEncoding.EncodeToString([]byte("https://api.happi.dev/v1/music/cover/" + albumID))
 						} else {
-							encodedCoverURL = base64.URLEncoding.EncodeToString([]byte(""))
+							encodedCoverURL = "_"
 						}
 
 						lyricsURL = fmt.Sprintf("https://%s.herokuapp.com/alyrics/%s/%s/%s/%s", os.Getenv("HEROKU_APP_NAME"), encodedLyrics, encodedCoverURL, encodedArtist, encodedTrack)

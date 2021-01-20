@@ -76,6 +76,13 @@ func lyricsTemplate(artist, track, lyrics, coverURL string) []byte {
 
 func happiDevHandler(w http.ResponseWriter, r *http.Request) {
 	var err error
+	defer func() {
+		r := recover()
+		if r != nil {
+			err, _ := r.(error)
+			handleError(&w, err)
+		}
+	}()
 	path := strings.Split(r.URL.Path, "/hlyrics/")[1]
 	parts := strings.Split(path, "/")
 	if len(parts) != 3 {
@@ -120,6 +127,13 @@ func happiDevHandler(w http.ResponseWriter, r *http.Request) {
 
 func auddDirectHandler(w http.ResponseWriter, r *http.Request) {
 	var err error
+	defer func() {
+		r := recover()
+		if r != nil {
+			err, _ := r.(error)
+			handleError(&w, err)
+		}
+	}()
 	path := strings.Split(r.URL.Path, "/alyrics/")[1]
 	parts := strings.Split(path, "/")
 
@@ -131,10 +145,15 @@ func auddDirectHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	base64EncodedCoverURL := parts[1]
-	coverURL, err := decodeBase64URI(base64EncodedCoverURL)
-	if err != nil {
-		handleError(&w, err)
-		return
+	var coverURL string
+	if base64EncodedCoverURL != "_" {
+		coverURL, err = decodeBase64URI(base64EncodedCoverURL)
+		if err != nil {
+			handleError(&w, err)
+			return
+		}
+	} else {
+		coverURL = ""
 	}
 
 	base64EncodedArtist := parts[2]
