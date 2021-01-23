@@ -29,11 +29,14 @@ ChatID of your account in Telegram. Bot will send you some error logs as well as
 - HAPPIDEV_API_TOKEN  
 [Happi.dev](https://happi.dev/docs/music) API token. Used for lyrics search. Simply register on happi.dev (it's free) to get a token. This functionality will not be available if you leave this variable empty
 
+- AUDD_API_TOKEN
+[Audd Music Recognition]() API token. Used for music recognition by voice messages and for lyrics search. Simply register on audd.io (free indie plan) to get a token. This functionality will not be available if you leave this variable empty
+
 - TELEGRAM_RHASH  
 Telegram [InstantView](https://instantview.telegram.org/) template rhash. Used for sending lyrics in InstantView form. Only useful if Happi.dev API token is provided. Here's [how to](https://instantview.telegram.org/#templates-tutorial) deal with instantviews. [Example](https://t.me/iv?url=https%3A%2F%2Fmusify-bot.herokuapp.com%2Flyrics%2F1996%2F2382%2F40356&rhash=81c30e9e431429). This functionality will not be available if you leave this variable empty
 
 - MUSIFY_SQL_DSN  
-MySQL DSN value of your own MySQL server. Used for storing some metadata and astatistics. This functionality will not be available if you leave this variable empty
+MySQL DSN value of your own MySQL server. Used for storing some metadata and astatistics. See below in ethe readme. Also used to buffer lyrics. This functionality will not be available if you leave this variable empty
 
 ## Miscellenious
 ### A note on vk.com account use
@@ -47,3 +50,16 @@ Your account must have a valid subscription on VK's [Boom](https://vk.com/boom) 
 
 - bot server is located in Russia (you will need to host it manually using, for example, [Yandex.Cloud](https://cloud.yandex.com/) or other VM provider or host the bot on your own server in Russia):   
 No Boom subscription is required
+
+### Statistics DB
+To gather statistics on bot's activity, an instance of MySQL or MariaDB must be up and running somewhere on your own servers.
+
+Launch such a database and execute the `musify-db.sql` script to initialize the schema compatible to this bot. Probably, the easiest way would be to launch a [dockerized MariaDB](https://hub.docker.com/_/mariadb). Please read the instructions from the link on how to properly set environmental variables.
+
+After you've set the DB up, you must now be able to construct your database conncetion DSN that you should put into the `MUSIFY_SQL_DSN` config var of your heroku deployment, e.g.:
+
+```
+<MYSQL_USER>:<MYSQL_PASSWORD>@tcp(<public-ip-address>:3306)/<MYSQL_DATABASE>
+```
+
+Note that variables names in the DSN above are the same as their corresponding environmental variables of this [docker container](https://hub.docker.com/_/mariadb)
