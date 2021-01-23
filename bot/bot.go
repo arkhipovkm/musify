@@ -463,7 +463,7 @@ func process(bot *tgbotapi.BotAPI, updates tgbotapi.UpdatesChannel) {
 				msg := tgbotapi.NewMessage(update.Message.Chat.ID, "Use inline query to search music")
 				switch update.Message.Command() {
 				case "help":
-					msg.Text = "Use this bot in inline mode in any chat to search and send music.\n\nReply to any audio to open its menu and lyrics.\n\nVK Users, in inline mode type `@<your VK ID or nickname>`, e.g. `@durov` or `@123456` to open your VK music (Note that your VK music must be open to public).\n\nThis bot is open-source and is available on [GitHub](https://github.com/arkhipovkm/musify). Anyone can run a copy of it on its own server 👩‍💻🧑‍💻. Visit [home page](https://github.com/arkhipovkm/musify) for instructions!"
+					msg.Text = "Use this bot in inline mode in any chat to search and send music.\n\nReply to any audio to open its menu and lyrics.\n\nSend me a voice message with some music on the background and I'll send you the recognized track (Powered by [AuDD](t.me/auddbot)).\n\nVK Users, type `@<your VK ID or nickname>`, e.g. `@durov` or `@123456` to open your VK music (Note that your VK music must be open to public).\n\nThis bot is open-source and is available on [GitHub](https://github.com/arkhipovkm/musify). Anyone can run a copy of it on its own server 👩‍💻🧑‍💻. Visit [home page](https://github.com/arkhipovkm/musify) for instructions!"
 					msg.DisableWebPagePreview = true
 					msg.ParseMode = "markdown"
 					switchInlineQuery := ""
