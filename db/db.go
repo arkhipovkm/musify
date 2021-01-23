@@ -33,11 +33,41 @@ func init() {
 	}
 }
 
+type Lyrics struct {
+	Performer string
+	Album     string
+	Title     string
+	Text      string
+	CoverURL  string
+}
+
 type Counts struct {
 	UsersCount int
 	ChatsCount int
 	MsgCount   int
 	CIRCount   int
+}
+
+func GetLyricsByID(id int) (*Lyrics, error) {
+	var err error
+	var lyrics Lyrics
+	if DB == nil {
+		return nil, err
+	}
+	resp := DB.QueryRow("SELECT performer as Performer, album as Album, title as Title, text as Text, cover_url as CoverURL FROM lyrics WHERE id=?", id)
+	resp.Scan(&lyrics.Performer, &lyrics.Album, &lyrics.Title, &lyrics.Text, &lyrics.CoverURL)
+	return &lyrics, err
+}
+
+func GetLyricsByMeta(performer, album, title string) (*Lyrics, error) {
+	var err error
+	var lyrics Lyrics
+	if DB == nil {
+		return nil, err
+	}
+	resp := DB.QueryRow("SELECT * FROM lyrics WHERE performer=? AND album=? AND title=?", performer, album, title)
+	resp.Scan(&lyrics)
+	return &lyrics, err
 }
 
 func GetCounts() (*Counts, error) {
@@ -154,6 +184,29 @@ func PutChosenInlineResult(cir *tgbotapi.ChosenInlineResult) error {
 		return fmt.Errorf("Error inserting User: %s", err)
 	}
 	return err
+}
+
+func PutLyrics(performer, album, title, text, coverURL string) (int64, error) {
+	var err error
+	var id int64
+	if DB == nil {
+		return id, nil
+	}
+	result, err := DB.Exec("INSERT INTO lyrics (performer, album, title, text, cover_url) VALUES (?, ?, ?, ?, ?)",
+		performer,
+		album,
+		title,
+		text,
+		coverURL,
+	)
+	if err != nil {
+		return id, fmt.Errorf("Error inserting Lyrics: %s", err)
+	}
+	id, err = result.LastInsertId()
+	if err != nil {
+		return id, err
+	}
+	return id, err
 }
 
 func PutMessageAsync(msg *tgbotapi.Message) {
