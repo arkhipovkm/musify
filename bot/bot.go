@@ -16,7 +16,7 @@ import (
 
 	"github.com/AudDMusic/audd-go"
 	"github.com/arkhipovkm/musify/db"
-	"github.com/arkhipovkm/musify/lyrics"
+	"github.com/arkhipovkm/musify/happidev"
 	"github.com/arkhipovkm/musify/utils"
 	"github.com/arkhipovkm/musify/vk"
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api"
@@ -24,19 +24,19 @@ import (
 )
 
 var N_RESULTS int = 10
-var vkUser *vk.User = vk.NewDefaultUser()
+var VK_USER *vk.User = vk.NewDefaultUser()
 
 var CaptchaSID string
 var CaptchaKey string
 
 func vkAuthLoop() {
 	for {
-		err := vkUser.Authenticate(CaptchaSID, CaptchaKey)
+		err := VK_USER.Authenticate(CaptchaSID, CaptchaKey)
 		if err != nil {
 			log.Println(err)
 		}
 		time.Sleep(12 * time.Hour)
-		utils.ClearCache(vkUser.RemixSID)
+		utils.ClearCache(VK_USER.RemixSID)
 	}
 }
 
@@ -264,7 +264,7 @@ func process(bot *tgbotapi.BotAPI, updates tgbotapi.UpdatesChannel) {
 				parts := InlineReAlbumAndQuery.FindStringSubmatch(update.InlineQuery.Query)
 				albumID := parts[1]
 				query := parts[2]
-				inlineQueryAnswer.Results, inlineQueryAnswer.NextOffset, err = getAlbumInlineResults(albumID, offset, N_RESULTS, query, vkUser)
+				inlineQueryAnswer.Results, inlineQueryAnswer.NextOffset, err = getAlbumInlineResults(albumID, offset, N_RESULTS, query, VK_USER)
 				if err != nil {
 					log.Println(err)
 				}
@@ -276,7 +276,7 @@ func process(bot *tgbotapi.BotAPI, updates tgbotapi.UpdatesChannel) {
 			} else if InlineReAlbum.MatchString(update.InlineQuery.Query) {
 				parts := InlineReAlbum.FindStringSubmatch(update.InlineQuery.Query)
 				albumID := parts[1]
-				inlineQueryAnswer.Results, inlineQueryAnswer.NextOffset, err = getAlbumInlineResults(albumID, offset, N_RESULTS, "", vkUser)
+				inlineQueryAnswer.Results, inlineQueryAnswer.NextOffset, err = getAlbumInlineResults(albumID, offset, N_RESULTS, "", VK_USER)
 				if err != nil {
 					log.Println(err)
 				}
@@ -312,7 +312,7 @@ func process(bot *tgbotapi.BotAPI, updates tgbotapi.UpdatesChannel) {
 
 				log.Printf("Converted the %s user into its main album id: %s", userID, albumID)
 
-				inlineQueryAnswer.Results, inlineQueryAnswer.NextOffset, err = getAlbumInlineResults(albumID, offset, N_RESULTS, query, vkUser)
+				inlineQueryAnswer.Results, inlineQueryAnswer.NextOffset, err = getAlbumInlineResults(albumID, offset, N_RESULTS, query, VK_USER)
 				if err != nil {
 					log.Println(err)
 				}
@@ -344,7 +344,7 @@ func process(bot *tgbotapi.BotAPI, updates tgbotapi.UpdatesChannel) {
 				searcheeUser := searcheeUsers[0]
 				albumID := fmt.Sprintf("%d_-1", searcheeUser.ID)
 				log.Printf("Converted the %s user into its main album id: %s", userID, albumID)
-				inlineQueryAnswer.Results, inlineQueryAnswer.NextOffset, err = getAlbumInlineResults(albumID, offset, N_RESULTS, "", vkUser)
+				inlineQueryAnswer.Results, inlineQueryAnswer.NextOffset, err = getAlbumInlineResults(albumID, offset, N_RESULTS, "", VK_USER)
 				if err != nil {
 					log.Println(err)
 				}
@@ -354,7 +354,7 @@ func process(bot *tgbotapi.BotAPI, updates tgbotapi.UpdatesChannel) {
 				}
 				continue
 			} else {
-				inlineQueryAnswer.Results, inlineQueryAnswer.NextOffset, err = getSectionInlineResults(update.InlineQuery.Query, offset, N_RESULTS, vkUser)
+				inlineQueryAnswer.Results, inlineQueryAnswer.NextOffset, err = getSectionInlineResults(update.InlineQuery.Query, offset, N_RESULTS, VK_USER)
 				if err != nil {
 					log.Println(err)
 				}
@@ -367,23 +367,26 @@ func process(bot *tgbotapi.BotAPI, updates tgbotapi.UpdatesChannel) {
 			// }
 		} else if update.CallbackQuery != nil {
 			bot.AnswerCallbackQuery(tgbotapi.NewCallback(update.CallbackQuery.ID, ""))
+
+			var chatID int64
+			if update.CallbackQuery.Message != nil &&
+				update.CallbackQuery.Message.Chat != nil &&
+				update.CallbackQuery.Message.Chat.ID != 0 {
+				chatID = update.CallbackQuery.Message.Chat.ID
+			} else if update.CallbackQuery.From != nil {
+				chatID = int64(update.CallbackQuery.From.ID)
+			} else {
+				continue
+			}
+
 			var re *regexp.Regexp
 			re = regexp.MustCompile("^send-all-(.*?)$")
 			if re.MatchString(update.CallbackQuery.Data) {
 				parts := re.FindStringSubmatch(update.CallbackQuery.Data)
 				albumID := parts[1]
-				audioShares, err := getAudioShares(albumID, vkUser)
+				audioShares, err := getAudioShares(albumID, VK_USER)
 				if err != nil {
 					log.Println(err)
-				}
-				var chatID int64
-				if update.CallbackQuery.Message != nil &&
-					update.CallbackQuery.Message.Chat != nil &&
-					update.CallbackQuery.Message.Chat.ID != 0 {
-					chatID = update.CallbackQuery.Message.Chat.ID
-				} else if update.CallbackQuery.From != nil {
-					chatID = int64(update.CallbackQuery.From.ID)
-				} else {
 					continue
 				}
 				for _, audioShare := range audioShares {
@@ -394,11 +397,10 @@ func process(bot *tgbotapi.BotAPI, updates tgbotapi.UpdatesChannel) {
 					}
 					if msg.MessageID != 0 {
 						go db.PutMessageAsync(&msg)
-						// utils.LogJSON(&msg)
 					}
 				}
 			}
-			re = regexp.MustCompile("^lyrics-(\\d+)-(\\d+)-(\\d+)-(\\d+)$")
+			re = regexp.MustCompile("^hlyrics-(\\d+)-(\\d+)-(\\d+)-(\\d+)$")
 			if re.MatchString(update.CallbackQuery.Data) {
 				subm := re.FindStringSubmatch(update.CallbackQuery.Data)
 				idArtist, err := strconv.Atoi(subm[1])
@@ -421,24 +423,40 @@ func process(bot *tgbotapi.BotAPI, updates tgbotapi.UpdatesChannel) {
 					log.Println(err)
 					continue
 				}
-				lyrics, err := lyrics.HappiGetLyrics(idArtist, idAlbum, idTrack)
+				lyrics, err := happidev.GetLyrics(idArtist, idAlbum, idTrack)
 				if err != nil {
 					log.Println(err)
 					continue
 				}
-				var chatID int64
-				if update.CallbackQuery.Message != nil &&
-					update.CallbackQuery.Message.Chat != nil &&
-					update.CallbackQuery.Message.Chat.ID != 0 {
-					chatID = update.CallbackQuery.Message.Chat.ID
-				} else if update.CallbackQuery.From != nil {
-					chatID = int64(update.CallbackQuery.From.ID)
-				} else {
-					continue
-				}
 				msg := tgbotapi.NewMessage(chatID, lyrics.Lyrics)
 				msg.ReplyToMessageID = replyToMessageID
-				bot.Send(msg)
+				_, err = bot.Send(msg)
+				if err != nil {
+					log.Println(err)
+				}
+			}
+			re = regexp.MustCompile("^ilyrics-(\\d+)-(\\d+)$")
+			if re.MatchString(update.CallbackQuery.Data) {
+				if os.Getenv("MUSIFY_SQL_DSN") != "" {
+					subm := re.FindStringSubmatch(update.CallbackQuery.Data)
+					lyricsID, err := strconv.Atoi(subm[1])
+					if err != nil {
+						log.Println(err)
+						continue
+					}
+					replyToMessageID, err := strconv.Atoi(subm[2])
+					if err != nil {
+						log.Println(err)
+						continue
+					}
+					lyrics, err := db.GetLyricsByID(lyricsID)
+					msg := tgbotapi.NewMessage(chatID, lyrics.Text)
+					msg.ReplyToMessageID = replyToMessageID
+					_, err = bot.Send(msg)
+					if err != nil {
+						log.Println(err)
+					}
+				}
 			}
 		} else if update.Message != nil {
 			if update.Message.IsCommand() {
@@ -478,10 +496,11 @@ func process(bot *tgbotapi.BotAPI, updates tgbotapi.UpdatesChannel) {
 				}
 			} else if update.Message.Audio != nil {
 				go db.PutMessageAsync(update.Message)
-				// utils.LogJSON(update.Message)
 			} else if update.Message.Voice != nil {
+				// Voice message audio frame recognition powered by Audd.
+				// This functionality is only available if subscribed to Audd API
+				// (Paid functionality)
 				if os.Getenv("AUDD_API_TOKEN") != "" {
-
 					fileConfig := tgbotapi.FileConfig{
 						FileID: update.Message.Voice.FileID,
 					}
@@ -490,72 +509,64 @@ func process(bot *tgbotapi.BotAPI, updates tgbotapi.UpdatesChannel) {
 						log.Println(err)
 						continue
 					}
-
 					fileURL := fmt.Sprintf("https://api.telegram.org/file/bot%s/%s", os.Getenv("TELEGRAM_BOT_API_TOKEN"), file.FilePath)
-					log.Println(fileURL)
-
 					resp, err := http.Get(fileURL)
 					if err != nil {
 						log.Println(err)
 						continue
 					}
 					defer resp.Body.Close()
-
 					client := audd.NewClient(os.Getenv("AUDD_API_TOKEN"))
 					auddResp, err := client.RecognizeByFile(resp.Body, "lyrics,spotify", nil)
 					if err != nil {
 						log.Println(err)
 						continue
 					}
-
-					// body, err := ioutil.ReadFile("audd_response.json")
-					// if err != nil {
-					// 	log.Println(err)
-					// 	continue
-					// }
-					// var auddResp audd.RecognitionResult
-					// json.Unmarshal(body, &auddResp)
-
-					utils.LogJSON(auddResp)
-
-					query := auddResp.Artist + " " + auddResp.Title
-					playlistMap, _, audios, err := vk.SectionQuery(query, 0, 1, vkUser)
-					if err != nil {
-						log.Println(err)
-						continue
-					}
-
-					if len(audios) > 0 {
-						a := audios[0]
-						playlist := playlistMap[a.Album]
-
-						uri := prepareAudioStreamURI(a, playlist)
-						audioShare := tgbotapi.NewAudioShare(int64(0), uri)
-						audioShare.Duration = a.Duration
-						audioShare.Performer = a.Performer
-						audioShare.Title = a.Title
-						audioShare.ChatID = update.Message.Chat.ID
-						audioShare.ReplyToMessageID = update.Message.MessageID
-
-						audioMsg, err := bot.Send(audioShare)
+					var lyricsID int64
+					if auddResp.Artist != "" && auddResp.Album != "" && auddResp.Title != "" && auddResp.Lyrics.Lyrics != "" {
+						var coverURL string
+						if auddResp.Spotify != nil && len(auddResp.Spotify.Album.Images) > 0 {
+							coverURL = auddResp.Spotify.Album.Images[0].URL
+						}
+						lyricsID, err = db.PutLyrics(auddResp.Artist, auddResp.Album, auddResp.Title, auddResp.Lyrics.Lyrics, coverURL)
 						if err != nil {
 							log.Println(err)
 							continue
 						}
+					}
+					playlistMap, _, audios, err := vk.SectionQuery(auddResp.Artist+" "+auddResp.Title, 0, 1, VK_USER)
+					if err != nil {
+						log.Println(err)
+						continue
+					}
+					var audioMsg tgbotapi.Message
+					if len(audios) > 0 {
+						audio := audios[0]
+						playlist := playlistMap[audio.Album]
 
-						encodedLyrics := base64.URLEncoding.EncodeToString([]byte(auddResp.Lyrics.Lyrics))
-						encodedCoverURL := base64.URLEncoding.EncodeToString([]byte(auddResp.Spotify.Album.Images[0].URL))
-						encodedArtist := base64.URLEncoding.EncodeToString([]byte(auddResp.Artist))
-						encodedTrack := base64.URLEncoding.EncodeToString([]byte(auddResp.Title))
-						lyricsURL := fmt.Sprintf("https://%s.herokuapp.com/alyrics/%s/%s/%s/%s", os.Getenv("HEROKU_APP_NAME"), encodedLyrics, encodedCoverURL, encodedArtist, encodedTrack)
-						log.Println(lyricsURL)
+						uri := prepareAudioStreamURI(audio, playlist)
+						audioShare := tgbotapi.NewAudioShare(int64(0), uri)
+						audioShare.Duration = audio.Duration
+						audioShare.Performer = audio.Performer
+						audioShare.Title = audio.Title
+						audioShare.ChatID = update.Message.Chat.ID
+						audioShare.ReplyToMessageID = update.Message.MessageID
 
+						audioMsg, err = bot.Send(audioShare)
+						if err != nil {
+							log.Println(err)
+						}
+					}
+					if auddResp.Lyrics != nil && lyricsID != 0 && os.Getenv("MUSIFY_SQL_DSN") != "" {
+						lyricsURL := fmt.Sprintf("https://%s.herokuapp.com/ilyrics/%d", os.Getenv("HEROKU_APP_NAME"), lyricsID)
 						msg := tgbotapi.NewMessage(
 							update.Message.Chat.ID,
-							fmt.Sprintf("%s — %s", a.Performer, a.Title),
+							fmt.Sprintf("%s — %s", auddResp.Artist, auddResp.Title),
 						)
-						msg.ReplyToMessageID = audioMsg.MessageID
-						switchInlineQuery := a.Performer + " "
+						if audioMsg.MessageID != 0 {
+							msg.ReplyToMessageID = audioMsg.MessageID
+						}
+						switchInlineQuery := auddResp.Artist + " "
 						msg.ReplyMarkup = &tgbotapi.InlineKeyboardMarkup{
 							InlineKeyboard: [][]tgbotapi.InlineKeyboardButton{{
 								tgbotapi.InlineKeyboardButton{
@@ -565,10 +576,16 @@ func process(bot *tgbotapi.BotAPI, updates tgbotapi.UpdatesChannel) {
 							}},
 						}
 						lyricsIVURL := fmt.Sprintf("https://t.me/iv?url=%s&rhash=%s", url.PathEscape(lyricsURL), os.Getenv("TELEGRAM_RHASH"))
-						msg.Text = fmt.Sprintf("[%s — %s](%s)", a.Performer, a.Title, lyricsIVURL)
+						msg.Text = fmt.Sprintf("[%s — %s](%s)", auddResp.Artist, auddResp.Title, lyricsIVURL)
 						msg.ParseMode = "markdown"
-						bot.Send(&msg)
+						_, err = bot.Send(&msg)
+						if err != nil {
+							log.Println(err)
+						}
 					}
+					continue
+				} else {
+					log.Println("Received voice message, but no Audd API token provided. Ignoring the message")
 					continue
 				}
 			} else if update.Message.ReplyToMessage != nil {
@@ -586,8 +603,8 @@ func process(bot *tgbotapi.BotAPI, updates tgbotapi.UpdatesChannel) {
 						CaptchaSID = parts[1]
 						CaptchaKey = update.Message.Text
 						log.Println("Received captcha SID and Key:", CaptchaSID, CaptchaKey)
-						utils.ClearCache(vkUser.RemixSID)
-						err = vkUser.Authenticate(CaptchaSID, CaptchaKey)
+						utils.ClearCache(VK_USER.RemixSID)
+						err = VK_USER.Authenticate(CaptchaSID, CaptchaKey)
 						var msg tgbotapi.MessageConfig
 						if err == nil {
 							msg = tgbotapi.NewMessage(update.Message.Chat.ID, "Successful login 💪")
@@ -613,73 +630,109 @@ func process(bot *tgbotapi.BotAPI, updates tgbotapi.UpdatesChannel) {
 					}
 
 					q := fmt.Sprintf("%s %s", audio.Performer, audio.Title)
-					searchResults, err := lyrics.HappiSearch(q)
-					if err != nil {
-						log.Println(err)
-						// bot.Send(msg)
-						// continue
-					}
-					utils.LogJSON(searchResults)
-					bestResult, err := lyrics.HappiFindBestMatch(audio.Performer, audio.Title, searchResults)
+					searchResults, err := happidev.Search(q)
 					if err != nil {
 						log.Println(err)
 					}
+					bestHapiResult, err := happidev.FindBestMatch(audio.Performer, audio.Title, searchResults)
+					if err != nil {
+						log.Println(err)
+					}
+
 					var lyricsURL string
-					if bestResult != nil && bestResult.HasLyrics {
-						lyricsURL = fmt.Sprintf("https://%s.herokuapp.com/hlyrics/%d/%d/%d", os.Getenv("HEROKU_APP_NAME"), bestResult.IDArtist, bestResult.IDAlbum, bestResult.IDTrack)
-					} else {
+					var lyricsID int64
+
+					if bestHapiResult != nil && bestHapiResult.HasLyrics {
+						lyricsURL = fmt.Sprintf(
+							"https://%s.herokuapp.com/hlyrics/%d/%d/%d",
+							os.Getenv("HEROKU_APP_NAME"),
+							bestHapiResult.IDArtist,
+							bestHapiResult.IDAlbum,
+							bestHapiResult.IDTrack,
+						)
+					} else if os.Getenv("AUDD_API_TOKEN") != "" && os.Getenv("MUSIFY_SQL_DSN") != "" {
 						client := audd.NewClient(os.Getenv("AUDD_API_TOKEN"))
 						foundLyrics, err := client.FindLyrics(q, nil)
-						if err != nil {
-							log.Println(err)
-							continue
-						}
-						if len(foundLyrics) == 0 {
-							log.Println("Empty Audd Lyrics")
-							continue
-						}
-						bestFoundLyrics := foundLyrics[0]
-						encodedLyrics := base64.URLEncoding.EncodeToString([]byte(bestFoundLyrics.Lyrics))
-						encodedArtist := base64.URLEncoding.EncodeToString([]byte(bestFoundLyrics.Artist))
-						encodedTrack := base64.URLEncoding.EncodeToString([]byte(bestFoundLyrics.Title))
+						if err == nil {
+							if len(foundLyrics) != 0 {
+								bestFoundLyrics := foundLyrics[0]
 
-						var encodedCoverURL string
-						if bestResult != nil {
-							albumID := strconv.Itoa(bestResult.IDAlbum)
-							encodedCoverURL = base64.URLEncoding.EncodeToString([]byte("https://api.happi.dev/v1/music/cover/" + albumID))
+								var album string
+								var coverURL string
+
+								if bestHapiResult != nil && bestHapiResult.Album != "" {
+									album = bestHapiResult.Album
+								}
+
+								if bestHapiResult != nil && bestHapiResult.IDAlbum > 0 {
+									coverURL = "https://api.happi.dev/v1/music/cover/" + strconv.Itoa(bestHapiResult.IDAlbum)
+								}
+
+								lyricsID, err = db.PutLyrics(
+									bestFoundLyrics.Artist,
+									album,
+									bestFoundLyrics.Title,
+									bestFoundLyrics.Lyrics,
+									coverURL,
+								)
+								if err == nil {
+									lyricsURL = fmt.Sprintf("https://%s.herokuapp.com/ilyrics/%d", os.Getenv("HEROKU_APP_NAME"), lyricsID)
+								} else {
+									log.Println(err)
+								}
+							} else {
+								log.Println("Empty Audd Lyrics")
+							}
 						} else {
-							encodedCoverURL = "_"
-						}
-
-						lyricsURL = fmt.Sprintf("https://%s.herokuapp.com/alyrics/%s/%s/%s/%s", os.Getenv("HEROKU_APP_NAME"), encodedLyrics, encodedCoverURL, encodedArtist, encodedTrack)
-					}
-
-					rHash := os.Getenv("TELEGRAM_RHASH")
-					if rHash != "" {
-						lyricsIVURL := fmt.Sprintf("https://t.me/iv?url=%s&rhash=%s", url.PathEscape(lyricsURL), rHash)
-						msg.Text = fmt.Sprintf("[%s — %s](%s)", audio.Performer, audio.Title, lyricsIVURL)
-						msg.ParseMode = "markdown"
-					} else {
-						callBackData := fmt.Sprintf("lyrics-%d-%d-%d-%d", bestResult.IDArtist, bestResult.IDAlbum, bestResult.IDTrack, update.Message.ReplyToMessage.MessageID)
-						msg.ReplyMarkup = &tgbotapi.InlineKeyboardMarkup{
-							InlineKeyboard: [][]tgbotapi.InlineKeyboardButton{{
-								tgbotapi.InlineKeyboardButton{
-									Text:         "Lyrics",
-									CallbackData: &callBackData,
-								},
-								tgbotapi.InlineKeyboardButton{
-									Text:                         "Search Artist",
-									SwitchInlineQueryCurrentChat: &switchInlineQuery,
-								},
-							}},
+							log.Println(err)
 						}
 					}
-					bot.Send(msg)
+					if lyricsURL != "" {
+						rHash := os.Getenv("TELEGRAM_RHASH")
+						if rHash != "" {
+							lyricsIVURL := fmt.Sprintf("https://t.me/iv?url=%s&rhash=%s", url.PathEscape(lyricsURL), rHash)
+							msg.Text = fmt.Sprintf("[%s — %s](%s)", audio.Performer, audio.Title, lyricsIVURL)
+							msg.ParseMode = "markdown"
+						} else {
+							if bestHapiResult != nil && bestHapiResult.HasLyrics {
+								callBackData := fmt.Sprintf("hlyrics-%d-%d-%d-%d", bestHapiResult.IDArtist, bestHapiResult.IDAlbum, bestHapiResult.IDTrack, update.Message.ReplyToMessage.MessageID)
+								msg.ReplyMarkup = &tgbotapi.InlineKeyboardMarkup{
+									InlineKeyboard: [][]tgbotapi.InlineKeyboardButton{{
+										tgbotapi.InlineKeyboardButton{
+											Text:         "Lyrics",
+											CallbackData: &callBackData,
+										},
+										tgbotapi.InlineKeyboardButton{
+											Text:                         "Search Artist",
+											SwitchInlineQueryCurrentChat: &switchInlineQuery,
+										},
+									}},
+								}
+							} else if lyricsID > 0 {
+								callBackData := fmt.Sprintf("ilyrics-%d-%d", lyricsID, update.Message.ReplyToMessage.MessageID)
+								msg.ReplyMarkup = &tgbotapi.InlineKeyboardMarkup{
+									InlineKeyboard: [][]tgbotapi.InlineKeyboardButton{{
+										tgbotapi.InlineKeyboardButton{
+											Text:         "Lyrics",
+											CallbackData: &callBackData,
+										},
+										tgbotapi.InlineKeyboardButton{
+											Text:                         "Search Artist",
+											SwitchInlineQueryCurrentChat: &switchInlineQuery,
+										},
+									}},
+								}
+							}
+						}
+					}
+					_, err = bot.Send(msg)
+					if err != nil {
+						log.Println(err)
+					}
 				}
 			}
 		} else if update.ChosenInlineResult != nil {
 			go db.PutChosenInlineResult(update.ChosenInlineResult)
-			// utils.LogJSON(update.ChosenInlineResult)
 		}
 	}
 }
