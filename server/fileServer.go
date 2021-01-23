@@ -1,4 +1,4 @@
-package streamer
+package server
 
 import (
 	"fmt"
@@ -25,6 +25,6 @@ func fileHandler(w http.ResponseWriter, r *http.Request) {
 	w.Write(data)
 }
 
-func TgFileServer() {
+func ServeTgFiles() {
 	http.HandleFunc("/file/", fileHandler)
 }

@@ -1,14 +1,15 @@
-package lyrics
+package server
 
 import (
-	"encoding/base64"
 	"errors"
 	"fmt"
-	"log"
 	"net/http"
 	"regexp"
 	"strconv"
 	"strings"
+
+	"github.com/arkhipovkm/musify/db"
+	"github.com/arkhipovkm/musify/happidev"
 )
 
 var TEMPLATE string = `
@@ -27,20 +28,6 @@ var TEMPLATE string = `
         </body>
     </body>
 </html>`
-
-func decodeBase64URI(base64EncodedURI string) (string, error) {
-	decodedURI, err := base64.URLEncoding.DecodeString(base64EncodedURI)
-	if err != nil {
-		return "", err
-	}
-	return string(decodedURI), nil
-}
-
-func handleError(w *http.ResponseWriter, err error) {
-	log.Println(err.Error())
-	(*w).WriteHeader(http.StatusInternalServerError)
-	(*w).Write([]byte(err.Error()))
-}
 
 func lyricsTemplate(artist, track, lyrics, coverURL string) []byte {
 	body := []byte(TEMPLATE)
@@ -106,7 +93,7 @@ func happiDevHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	lyrics, err := HappiGetLyrics(idArtist, idAlbum, idTrack)
+	lyrics, err := happidev.GetLyrics(idArtist, idAlbum, idTrack)
 	if err != nil {
 		handleError(&w, err)
 		return
@@ -176,10 +163,44 @@ func auddDirectHandler(w http.ResponseWriter, r *http.Request) {
 	w.Write(body)
 }
 
-func HappiDevLyricsServer() {
+func idHandler(w http.ResponseWriter, r *http.Request) {
+	var err error
+	defer func() {
+		r := recover()
+		if r != nil {
+			err, _ := r.(error)
+			handleError(&w, err)
+		}
+	}()
+	strID := strings.Split(r.URL.Path, "/ilyrics/")[1]
+	intID, err := strconv.Atoi(strID)
+	if err != nil {
+		handleError(&w, err)
+		return
+	}
+	lyrics, err := db.GetLyricsByID(intID)
+	if err != nil {
+		handleError(&w, err)
+		return
+	}
+	if lyrics == nil {
+		err = errors.New("Not Found")
+		handleError(&w, err)
+		return
+	}
+	body := lyricsTemplate(lyrics.Performer, lyrics.Title, lyrics.Text, lyrics.CoverURL)
+	w.Header().Add("Content-Type", "text/html")
+	w.Write(body)
+}
+
+func ServeHappiDevLyrics() {
 	http.HandleFunc("/hlyrics/", happiDevHandler)
 }
 
-func AuddDirectLyricsServer() {
+func ServeAuddDirectLyrics() {
 	http.HandleFunc("/alyrics/", auddDirectHandler)
+}
+
+func ServeIDLyrics() {
+	http.HandleFunc("/ilyrics/", idHandler)
 }

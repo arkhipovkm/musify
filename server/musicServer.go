@@ -1,7 +1,6 @@
-package streamer
+package server
 
 import (
-	"encoding/base64"
 	"fmt"
 	"io/ioutil"
 	"log"
@@ -16,14 +15,6 @@ import (
 	"github.com/arkhipovkm/musify/download"
 	"github.com/arkhipovkm/musify/utils"
 )
-
-func decodeBase64URI(base64EncodedURI string) (string, error) {
-	decodedURI, err := base64.URLEncoding.DecodeString(base64EncodedURI)
-	if err != nil {
-		return "", err
-	}
-	return string(decodedURI), nil
-}
 
 func httpGET(uri string) ([]byte, error) {
 	resp, err := http.Get(uri)
@@ -44,13 +35,7 @@ func httpGETChan(uri string, dataChan chan []byte, errChan chan error) {
 	errChan <- err
 }
 
-func handleError(w *http.ResponseWriter, err error) {
-	log.Println(err.Error())
-	(*w).WriteHeader(http.StatusInternalServerError)
-	(*w).Write([]byte(err.Error()))
-}
-
-func handler(w http.ResponseWriter, r *http.Request) {
+func musicHandler(w http.ResponseWriter, r *http.Request) {
 	t0 := time.Now()
 	defer func() {
 		r := recover()
@@ -190,6 +175,6 @@ func handler(w http.ResponseWriter, r *http.Request) {
 	return
 }
 
-func Streamer() {
-	http.HandleFunc("/streamer/", handler)
+func ServeMusic() {
+	http.HandleFunc("/streamer/", musicHandler)
 }
