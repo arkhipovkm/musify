@@ -20,8 +20,8 @@ var TEMPLATE string = `
     <body>
         <h1>{{Title}}</h1>
         <h2>{{Subtitle}}</h2>
-        <div class="cover">
-            <img src="{{Cover}}">
+		<div class="cover">
+			{{Cover}}
         </div>
         <div class="content">
             {{Content}}
@@ -41,6 +41,9 @@ func lyricsTemplate(artist, track, lyrics, coverURL string) []byte {
 		} else {
 			content += "</p>\n<p>"
 		}
+	}
+	if coverURL != "" {
+		coverURL = fmt.Sprintf("<img src=\"%s\">", coverURL)
 	}
 
 	reTitle := regexp.MustCompile("\\{\\{Title\\}}")
