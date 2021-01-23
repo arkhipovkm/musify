@@ -44,6 +44,10 @@ func main() {
 	if happiDev == "" {
 		log.Println("WARNING. No HappiDev API Token. Lyrics will be unavailable.")
 	}
+	auddToken := os.Getenv("AUDD_API_TOKEN")
+	if auddToken == "" {
+		log.Println("WARNING. No AUDD API Token. Voice music recognition and some lyrics will be unavailable.")
+	}
 	tgRhash := os.Getenv("TELEGRAM_RHASH")
 	if tgRhash == "" {
 		log.Println("WARNING. No Telegram InstantView RHash. Lyrics will not be available thru InstantView")
