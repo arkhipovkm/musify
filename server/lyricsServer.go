@@ -15,7 +15,8 @@ import (
 var TEMPLATE string = `
 <html>
     <head>
-        <meta charset="UTF-8">
+		<meta charset="UTF-8"/>
+		<meta name="description=" content="{{Description}}"/>
     </head>
     <body>
         <h1>{{Title}}</h1>
@@ -43,15 +44,16 @@ func lyricsTemplate(artist, track, lyrics, coverURL string) []byte {
 		}
 	}
 	if coverURL != "" {
-		coverURL = fmt.Sprintf("<img src=\"%s\">", coverURL)
+		coverURL = fmt.Sprintf("<img src=\"%s\"/>", coverURL)
 	}
 
-	reTitle := regexp.MustCompile("\\{\\{Title\\}}")
+	reDescription := regexp.MustCompile("\\{\\{Description\\}\\}")
+	reTitle := regexp.MustCompile("\\{\\{Title\\}\\}")
 	reSubtitle := regexp.MustCompile("\\{\\{Subtitle\\}\\}")
 	reContent := regexp.MustCompile("\\{\\{Content\\}\\}")
 	reCover := regexp.MustCompile("\\{\\{Cover\\}\\}")
 
-	title := []byte(fmt.Sprintf(track))
+	title := []byte(track)
 	body = reTitle.ReplaceAll(body, title)
 
 	subtitle := []byte(artist)
@@ -59,6 +61,9 @@ func lyricsTemplate(artist, track, lyrics, coverURL string) []byte {
 
 	bcontent := []byte(content)
 	body = reContent.ReplaceAll(body, bcontent)
+
+	description := fmt.Sprintf("%s — %s Lyrics", artist, track)
+	body = reDescription.ReplaceAll(body, []byte(description))
 
 	body = reCover.ReplaceAll(body, []byte(coverURL))
 	return body
