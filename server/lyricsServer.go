@@ -17,6 +17,7 @@ var TEMPLATE string = `
     <head>
 		<meta charset="UTF-8"/>
 		<meta name="description" content="{{Description}}"/>
+		<meta property="og:description" content="{{Description}}" />  
     </head>
 	<body style="text-align: center; font-family: Century">
 		<div class="cover" style="width: 100vw; height: 50vh; margin: auto">
