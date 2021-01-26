@@ -16,14 +16,14 @@ var TEMPLATE string = `
 <html>
     <head>
 		<meta charset="UTF-8"/>
-		<meta name="description=" content="{{Description}}"/>
+		<meta name="description" content="{{Description}}"/>
     </head>
-    <body style="text-align: center; font-family: Century">
-        <h1>{{Title}}</h1>
-        <h2>{{Subtitle}}</h2>
+	<body style="text-align: center; font-family: Century">
 		<div class="cover" style="width: 100vw; height: 50vh; margin: auto">
 			{{Cover}}
-        </div>
+		</div>	
+		<h1>{{Title}}</h1>
+        <h2>{{Subtitle}}</h2>
         <div class="content">
 			{{Content}}
 		</div>
