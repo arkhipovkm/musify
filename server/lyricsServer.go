@@ -18,15 +18,15 @@ var TEMPLATE string = `
 		<meta charset="UTF-8"/>
 		<meta name="description=" content="{{Description}}"/>
     </head>
-    <body>
+    <body style="text-align: center; font-family: Century">
         <h1>{{Title}}</h1>
         <h2>{{Subtitle}}</h2>
-		<div class="cover">
+		<div class="cover" style="width: 100vw; height: 50vh; margin: auto">
 			{{Cover}}
         </div>
         <div class="content">
-            {{Content}}
-        </body>
+			{{Content}}
+		</div>
     </body>
 </html>`
 
@@ -44,7 +44,7 @@ func lyricsTemplate(artist, track, lyrics, coverURL string) []byte {
 		}
 	}
 	if coverURL != "" {
-		coverURL = fmt.Sprintf("<img src=\"%s\"/>", coverURL)
+		coverURL = fmt.Sprintf("<img src=\"%s\" style=\"opacity: 0.5; object-fit: contain; width:100%%; height:100%%;\"/>", coverURL)
 	}
 
 	reDescription := regexp.MustCompile("\\{\\{Description\\}\\}")
