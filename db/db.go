@@ -28,7 +28,7 @@ func init() {
 		}
 		err = DB.Ping()
 		if err != nil {
-			log.Fatal(err)
+			log.Println(err)
 		}
 	}
 }
