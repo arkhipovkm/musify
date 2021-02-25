@@ -67,8 +67,8 @@ func prepareAudioStreamURI(a *vk.Audio, album *vk.Playlist) string {
 	}
 	query.Set("apic_cover", base64.URLEncoding.EncodeToString([]byte(apicCover)))
 	return fmt.Sprintf(
-		"https://%s.herokuapp.com/streamer/%s/%s.mp3?%s",
-		os.Getenv("HEROKU_APP_NAME"),
+		"https://%s/streamer/%s/%s.mp3?%s",
+		os.Getenv("APP_HOSTNAME"),
 		base64.URLEncoding.EncodeToString([]byte(a.URL)),
 		url.PathEscape(strings.ReplaceAll(a.Performer, "/", "|")+" — "+strings.ReplaceAll(a.Title, "/", "|")),
 		query.Encode(),
@@ -558,7 +558,7 @@ func process(bot *tgbotapi.BotAPI, updates tgbotapi.UpdatesChannel) {
 						}
 					}
 					if auddResp.Lyrics != nil && lyricsID != 0 && os.Getenv("MUSIFY_SQL_DSN") != "" {
-						lyricsURL := fmt.Sprintf("https://%s.herokuapp.com/ilyrics/%d", os.Getenv("HEROKU_APP_NAME"), lyricsID)
+						lyricsURL := fmt.Sprintf("https://%s/ilyrics/%d", os.Getenv("APP_HOSTNAME"), lyricsID)
 						msg := tgbotapi.NewMessage(
 							update.Message.Chat.ID,
 							fmt.Sprintf("%s — %s", auddResp.Artist, auddResp.Title),
@@ -644,8 +644,8 @@ func process(bot *tgbotapi.BotAPI, updates tgbotapi.UpdatesChannel) {
 
 					if bestHapiResult != nil && bestHapiResult.HasLyrics {
 						lyricsURL = fmt.Sprintf(
-							"https://%s.herokuapp.com/hlyrics/%d/%d/%d",
-							os.Getenv("HEROKU_APP_NAME"),
+							"https://%s/hlyrics/%d/%d/%d",
+							os.Getenv("APP_HOSTNAME"),
 							bestHapiResult.IDArtist,
 							bestHapiResult.IDAlbum,
 							bestHapiResult.IDTrack,
@@ -676,7 +676,7 @@ func process(bot *tgbotapi.BotAPI, updates tgbotapi.UpdatesChannel) {
 									coverURL,
 								)
 								if err == nil {
-									lyricsURL = fmt.Sprintf("https://%s.herokuapp.com/ilyrics/%d", os.Getenv("HEROKU_APP_NAME"), lyricsID)
+									lyricsURL = fmt.Sprintf("https://%s/ilyrics/%d", os.Getenv("APP_HOSTNAME"), lyricsID)
 								} else {
 									log.Println(err)
 								}
@@ -757,7 +757,7 @@ func Bot() {
 
 	var updates tgbotapi.UpdatesChannel
 	if !debug {
-		_, err = bot.SetWebhook(tgbotapi.NewWebhook(fmt.Sprintf("https://%s.herokuapp.com/%s", os.Getenv("HEROKU_APP_NAME"), bot.Token)))
+		_, err = bot.SetWebhook(tgbotapi.NewWebhook(fmt.Sprintf("https://%s/%s", os.Getenv("APP_HOSTNAME"), bot.Token)))
 		if err != nil {
 			log.Fatal(err)
 		}

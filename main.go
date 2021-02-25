@@ -12,7 +12,7 @@ import (
 
 func main() {
 	defer db.DB.Close()
-	herokuAppName := os.Getenv("HEROKU_APP_NAME")
+	appHostname := os.Getenv("APP_HOSTNAME")
 	if herokuAppName == "" {
 		panic("No Heroku App Name")
 	}
