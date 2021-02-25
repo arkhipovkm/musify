@@ -13,8 +13,8 @@ import (
 func main() {
 	defer db.DB.Close()
 	appHostname := os.Getenv("APP_HOSTNAME")
-	if herokuAppName == "" {
-		panic("No Heroku App Name")
+	if appHostname == "" {
+		panic("No App Host Name")
 	}
 	telegramBotToken := os.Getenv("TELEGRAM_BOT_API_TOKEN")
 	if telegramBotToken == "" {
