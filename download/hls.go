@@ -6,11 +6,13 @@ import (
 	"errors"
 	"fmt"
 	"io/ioutil"
+	"log"
 	"net/http"
 	"os"
 	"os/exec"
 	"path/filepath"
 	"strings"
+	"time"
 
 	"github.com/arkhipovkm/musify/utils"
 	"github.com/grafov/m3u8"
@@ -33,26 +35,32 @@ func httpFetch(uri string) ([]byte, error) {
 	return body, nil
 }
 
-func fetchM3U8Playlist(url string) (*m3u8.MediaPlaylist, error) {
+func fetchM3U8Playlist(uri string) (*m3u8.MediaPlaylist, string, error) {
 	var err error
-	resp, err := http.Get(url)
-	if err != nil {
-		return nil, err
+	client := &http.Client{
+		CheckRedirect: func(req *http.Request, via []*http.Request) error {
+			return http.ErrUseLastResponse
+		},
 	}
+	resp, err := client.Get(uri)
+	if err != nil {
+		return nil, uri, err
+	}
+	defer resp.Body.Close()
 	if resp.StatusCode == 302 {
 		redirectURL, err := resp.Location()
 		if err != nil {
-			return nil, err
+			return nil, uri, err
 		}
+		log.Printf("Redirect on fetchM3U8Playlist: %s\n", resp.Status)
 		return fetchM3U8Playlist(redirectURL.String())
 	}
-	defer resp.Body.Close()
 	p, _, err := m3u8.DecodeFrom(resp.Body, false)
-	playlist := p.(*m3u8.MediaPlaylist)
 	if err != nil {
-		return nil, err
+		return nil, uri, err
 	}
-	return playlist, err
+	playlist := p.(*m3u8.MediaPlaylist)
+	return playlist, uri, err
 }
 
 func fetchM3U8Segment(key, iv []byte, uri, path string, errChan chan error) {
@@ -92,7 +100,7 @@ func fetchM3U8Track(uri, path string) error {
 
 	keySet := make(map[string]bool)
 	keyValues := make(map[string][]byte)
-	mediapl, err := fetchM3U8Playlist(uri)
+	mediapl, uri, err := fetchM3U8Playlist(uri)
 	if err != nil {
 		return err
 	}
@@ -146,6 +154,7 @@ func HLS(uri string) ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
+	t0 := time.Now()
 	out, err := exec.Command(
 		"ffmpeg",
 		"-hide_banner",
@@ -168,22 +177,28 @@ func HLS(uri string) ([]byte, error) {
 		err = errors.New("ffmpeg: " + err.Error())
 		return nil, err
 	}
+
+	t1 := time.Now()
+	log.Printf("FFmpeg concat demuxer completed in %.1f ms\n", float64(t1.UnixNano()-t0.UnixNano())/float64(1e6))
+
 	return out, nil
 }
 
 // HLSFile downloads an audio file using HLS protocol and writes the result into file
-func HLSFile(uri string, filename string) (string, error) {
+func HLSFile(uri string, filename string) (string, int, error) {
 	var err error
+	var n int
 	if filename == "" {
 		filename = filepath.Base(filepath.Dir(uri)) + "_" + utils.RandSeq(4) + ".mp3"
 	}
 	data, err := HLS(uri)
 	if err != nil {
-		return filename, err
+		return filename, n, err
 	}
+	n = len(data)
 	err = ioutil.WriteFile(filename, data, os.ModePerm)
 	if err != nil {
-		return filename, err
+		return filename, n, err
 	}
-	return filename, err
+	return filename, n, err
 }

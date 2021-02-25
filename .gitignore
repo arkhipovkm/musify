@@ -20,5 +20,9 @@
 *.jpg
 *.html
 *.json
-main.go
+# main.go
 *cache*
+captcha.b64
+.buildpacks
+!app.json
+__debug_bin
