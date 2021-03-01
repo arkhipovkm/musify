@@ -330,9 +330,24 @@ func process(bot *tgbotapi.BotAPI, updates tgbotapi.UpdatesChannel) {
 	for update := range updates {
 		replics := getReplics(update)
 		if update.InlineQuery != nil {
+			var cacheTime int
+			if os.Getenv("DEBUG") != "" {
+				cacheTime = 0
+			} else {
+				if os.Getenv("INLINE_CACHE_TIME") != "" {
+					ct, err := strconv.Atoi(os.Getenv("INLINE_CACHE_TIME"))
+					if err != nil {
+						cacheTime = 3600
+					} else {
+						cacheTime = ct
+					}
+				} else {
+					cacheTime = 3600
+				}
+			}
 			inlineQueryAnswer := tgbotapi.InlineConfig{
 				InlineQueryID: update.InlineQuery.ID,
-				CacheTime:     3600,
+				CacheTime:     cacheTime,
 				IsPersonal:    false,
 			}
 			// if update.InlineQuery.Query == "" || update.InlineQuery.Query == " " {
