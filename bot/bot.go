@@ -29,6 +29,91 @@ var VK_USER *vk.User = vk.NewDefaultUser()
 var CaptchaSID string
 var CaptchaKey string
 
+type Replics struct {
+	StartHelp                   string
+	LyricsHelp                  string
+	RecognitionHelp             string
+	VkHelp                      string
+	AllHelp                     string
+	ButtonStart                 string
+	ButtonBack                  string
+	ButtonDiscover              string
+	ButtonShare                 string
+	ButtonGet                   string
+	ButtonSearchArtist          string
+	ButtonLyrics                string
+	AnswerCallbackQueryAlbumGet string
+}
+
+var replicsLangMap = map[string]*Replics{
+	"ru": {
+		StartHelp:       "Введи @%s в строке сообщения в любом чате для быстрого поиска и отправки музыки. Прямо как встроенные @vid, @pic или @gif.",
+		LyricsHelp:      "Я умею искать тексты песен! Ты можешь \"ответить\" мне на сообщение с песней и я отправлю тебе ее текст.",
+		RecognitionHelp: "Я умею распознавать музыку! Отправь мне короткое (2-3 сек) аудиосообщение с музыкой на фоне и я отправлю тебе распознанный трек.",
+		VkHelp:          "Я интегрирован с ВК! Вместо поискового запроса ты можешь ввести `@id` или `@username` ВК и я открою его аудиозаписи (должны быть открыты в настройках ВК).",
+		AllHelp: `Просто введи @%s в строке сообщения в любом чате для быстрого поиска и отправки музыки. Прямо как встроенные @vid, @pic и @gif.
+
+"Ответь" мне на сообщение с песней и я отправлю тебе ее текст. Подробнее: /lyrics
+
+Отправь мне короткое (2-3 сек) аудиосообщение с музыкой на фоне и я отправлю тебе распознанный трек вместе с его текстом. Подробнее: /recognition
+
+Вместо поискового запроса ты можешь ввести ` + "`" + `@id` + "`" + ` или ` + "`" + `@username` + "`" + ` ВК и я открою его аудиозаписи (должны быть открыты в настройках ВК). Подробнее: /vk
+
+Этот бот - с открытым кодом 👩‍💻🧑‍💻. Все желающие могут запустить копию этого бота у себя на компьютере, сервере или на *heroku*. Подробности на [GitHub](https://github.com/arkhipovkm/musify).`,
+		ButtonStart:                 "Начать",
+		ButtonBack:                  "Назад",
+		ButtonDiscover:              "Открыть",
+		ButtonShare:                 "Поделиться",
+		ButtonGet:                   "Скачать",
+		ButtonSearchArtist:          "Поиск исполнителя",
+		ButtonLyrics:                "Текст песни",
+		AnswerCallbackQueryAlbumGet: "\"%s\" уже в пути!",
+	},
+	"en": {
+		StartHelp:       "Type @%s to quickly search for and send music in any chat from the message field.",
+		LyricsHelp:      "I can send you lyrics! \"Reply\" to any music message in this chat and I'll send you its lyrics.",
+		RecognitionHelp: "I can recognize music! Send me a short (2-3 sec) audiomessage with some music on the background and I'll send you the actual track.",
+		VkHelp:          "I am interated with vk.com. Instead of a search query, type a VK's `@id` or `@username` and I'll send you this user's mpersonal music (music must be publicly visible in settings).",
+		AllHelp: `Simply type @%s to quickly search for and send music in any chat from the message field. Just as those built-in bots: @vid, @pic or @gif.
+
+I can send you lyrics! "Reply" to any music message in this chat and I'll send you its lyrics. Details: /lyrics
+
+I can recognize music! Send me a short (2-3 sec) audiomessage with some music on the background and I'll send you the actual track. Details: /recognition
+
+I am interated with vk.com. Instead of a search query, type your VK's ` + "`" + `@id` + "`" + ` or ` + "`" + `@username` + "`" + ` and I'll send you this user's vk's audios (it must be publicly visible in vk.com settings). Details: /vk
+
+This bot is open-source 👩‍💻🧑‍💻. Anyone can run a copy of it on its own pc, server or *heroku*. Details on how to deploy are on [GitHub](https://github.com/arkhipovkm/musify).`,
+		ButtonStart:                 "Start",
+		ButtonBack:                  "Back",
+		ButtonDiscover:              "Open",
+		ButtonShare:                 "Share",
+		ButtonGet:                   "Get",
+		ButtonSearchArtist:          "Search artist",
+		ButtonLyrics:                "Lyrics",
+		AnswerCallbackQueryAlbumGet: "\"%s\" is on its way!",
+	},
+}
+
+func getReplics(update tgbotapi.Update) *Replics {
+	var languageCode string
+	if update.Message != nil && update.Message.From != nil {
+		languageCode = update.Message.From.LanguageCode
+	} else if update.CallbackQuery != nil && update.CallbackQuery.From != nil {
+		languageCode = update.CallbackQuery.From.LanguageCode
+	}
+
+	var replics *Replics
+	for k, v := range replicsLangMap {
+		if k == languageCode {
+			replics = v
+		}
+	}
+	if replics == nil {
+		replics = replicsLangMap["en"]
+	}
+	return replics
+}
+
 func vkAuthLoop() {
 	for {
 		err := VK_USER.Authenticate(CaptchaSID, CaptchaKey)
@@ -87,16 +172,16 @@ func prepareInlineAudioResult(a *vk.Audio, album *vk.Playlist) *tgbotapi.InlineQ
 	}
 }
 
-func getAudioShares(albumID string, u *vk.User) (results []tgbotapi.AudioConfig, err error) {
+func getAudioShares(albumID string, u *vk.User) (results []tgbotapi.AudioConfig, playlist *vk.Playlist, err error) {
 	defer func() {
 		r := recover()
 		err, _ = r.(error)
 	}()
-	playlist := vk.LoadPlaylist(albumID, u)
+	playlist = vk.LoadPlaylist(albumID, u)
 	playlist.AcquireURLs(u)
 	playlist.DecypherURLs(u)
 	if playlist == nil {
-		return nil, fmt.Errorf("Nil playlist: %s", albumID)
+		return nil, playlist, fmt.Errorf("Nil playlist: %s", albumID)
 	}
 
 	for _, a := range playlist.List {
@@ -109,7 +194,7 @@ func getAudioShares(albumID string, u *vk.User) (results []tgbotapi.AudioConfig,
 			results = append(results, audioShare)
 		}
 	}
-	return results, err
+	return results, playlist, err
 }
 
 func getAlbumInlineResults(albumID string, offset int, n int, query string, u *vk.User) (results []interface{}, nextOffset string, err error) {
@@ -157,7 +242,7 @@ func getAlbumInlineResults(albumID string, offset int, n int, query string, u *v
 	return results, nextOffset, err
 }
 
-func getSectionInlineResults(query string, offset, n int, u *vk.User) (results []interface{}, nextOffset string, err error) {
+func getSectionInlineResults(query string, offset, n int, replics *Replics, u *vk.User) (results []interface{}, nextOffset string, err error) {
 	nextOffset = strconv.Itoa(offset + n)
 	defer func() {
 		r := recover()
@@ -203,15 +288,15 @@ func getSectionInlineResults(query string, offset, n int, u *vk.User) (results [
 			ReplyMarkup: &tgbotapi.InlineKeyboardMarkup{
 				InlineKeyboard: [][]tgbotapi.InlineKeyboardButton{{
 					tgbotapi.InlineKeyboardButton{
-						Text:                         "Discover",
+						Text:                         replics.ButtonDiscover,
 						SwitchInlineQueryCurrentChat: &switchInlineQuery,
 					},
 					tgbotapi.InlineKeyboardButton{
-						Text:              "Share",
+						Text:              replics.ButtonShare,
 						SwitchInlineQuery: &switchInlineQuery,
 					},
 					tgbotapi.InlineKeyboardButton{
-						Text:         "Get",
+						Text:         replics.ButtonGet,
 						CallbackData: &callBackData,
 					},
 				}},
@@ -243,6 +328,7 @@ var InlineReUser *regexp.Regexp = regexp.MustCompile("^@(.*?)$")
 func process(bot *tgbotapi.BotAPI, updates tgbotapi.UpdatesChannel) {
 	var err error
 	for update := range updates {
+		replics := getReplics(update)
 		if update.InlineQuery != nil {
 			inlineQueryAnswer := tgbotapi.InlineConfig{
 				InlineQueryID: update.InlineQuery.ID,
@@ -354,7 +440,7 @@ func process(bot *tgbotapi.BotAPI, updates tgbotapi.UpdatesChannel) {
 				}
 				continue
 			} else {
-				inlineQueryAnswer.Results, inlineQueryAnswer.NextOffset, err = getSectionInlineResults(update.InlineQuery.Query, offset, N_RESULTS, VK_USER)
+				inlineQueryAnswer.Results, inlineQueryAnswer.NextOffset, err = getSectionInlineResults(update.InlineQuery.Query, offset, N_RESULTS, replics, VK_USER)
 				if err != nil {
 					log.Println(err)
 				}
@@ -366,8 +452,6 @@ func process(bot *tgbotapi.BotAPI, updates tgbotapi.UpdatesChannel) {
 			}
 			// }
 		} else if update.CallbackQuery != nil {
-			bot.AnswerCallbackQuery(tgbotapi.NewCallback(update.CallbackQuery.ID, ""))
-
 			var chatID int64
 			if update.CallbackQuery.Message != nil &&
 				update.CallbackQuery.Message.Chat != nil &&
@@ -384,10 +468,19 @@ func process(bot *tgbotapi.BotAPI, updates tgbotapi.UpdatesChannel) {
 			if re.MatchString(update.CallbackQuery.Data) {
 				parts := re.FindStringSubmatch(update.CallbackQuery.Data)
 				albumID := parts[1]
-				audioShares, err := getAudioShares(albumID, VK_USER)
+				audioShares, playlist, err := getAudioShares(albumID, VK_USER)
 				if err != nil {
 					log.Println(err)
 					continue
+				}
+				_, err = bot.AnswerCallbackQuery(
+					tgbotapi.NewCallback(
+						update.CallbackQuery.ID,
+						fmt.Sprintf(replics.AnswerCallbackQueryAlbumGet, playlist.Title),
+					),
+				)
+				if err != nil {
+					log.Println(err)
 				}
 				for _, audioShare := range audioShares {
 					audioShare.ChatID = chatID
@@ -460,39 +553,66 @@ func process(bot *tgbotapi.BotAPI, updates tgbotapi.UpdatesChannel) {
 			}
 		} else if update.Message != nil {
 			if update.Message.IsCommand() {
-				msg := tgbotapi.NewMessage(update.Message.Chat.ID, "Use inline query to search music")
+				msg := tgbotapi.NewMessage(update.Message.Chat.ID, "")
 				switch update.Message.Command() {
 				case "help":
-					msg.Text = "Use this bot in inline mode in any chat to search and send music.\n\nReply to any audio to open its menu and lyrics.\n\nSend me a voice message with some music on the background and I'll send you the recognized track (Powered by [AuDD](t.me/auddbot)).\n\nVK Users, type `@<your VK ID or nickname>`, e.g. `@durov` or `@123456` to open your VK music (Note that your VK music must be open to public).\n\nThis bot is open-source and is available on [GitHub](https://github.com/arkhipovkm/musify). Anyone can run a copy of it on its own server 👩‍💻🧑‍💻. Visit [home page](https://github.com/arkhipovkm/musify) for instructions!"
-					msg.DisableWebPagePreview = true
-					msg.ParseMode = "markdown"
+					msg.Text = fmt.Sprintf(replics.AllHelp, strings.ReplaceAll(bot.Self.UserName, "_", "\\_"))
+					msg.ReplyMarkup = "markdown"
 					switchInlineQuery := ""
+					msg.DisableWebPagePreview = true
 					msg.ReplyMarkup = &tgbotapi.InlineKeyboardMarkup{
 						InlineKeyboard: [][]tgbotapi.InlineKeyboardButton{{
 							tgbotapi.InlineKeyboardButton{
-								Text:                         "Start",
+								Text:                         replics.ButtonStart,
 								SwitchInlineQueryCurrentChat: &switchInlineQuery,
 							},
 						}},
 					}
 					bot.Send(msg)
+				case "lyrics":
+					vmsg := tgbotapi.NewVideoShare(update.Message.Chat.ID, "BAACAgQAAxkBAAEC4jJgPDyWRZ1c2-q4msf4p4HFwHlhZwACgggAAt3m4FESYly8KpDuEx4E")
+					vmsg.Caption = replics.LyricsHelp
+					vmsg.ParseMode = "markdown"
+					bot.Send(vmsg)
+				case "recognition":
+					vmsg := tgbotapi.NewVideoShare(update.Message.Chat.ID, "BAACAgQAAxkBAAEC4jFgPDyW0z4J2CmY1AHYx1KXg_UeXQACgQgAAt3m4FGEq8P2dgObPh4E")
+					vmsg.Caption = replics.RecognitionHelp
+					vmsg.ParseMode = "markdown"
+					bot.Send(vmsg)
+				case "vk":
+					vmsg := tgbotapi.NewVideoShare(update.Message.Chat.ID, "BAACAgQAAxkBAAEC4jBgPDyW5joc6sMw2hz1yFZJPS-CuQACgAgAAt3m4FGs7_u_h4at_R4E")
+					vmsg.Caption = replics.VkHelp
+					vmsg.ParseMode = "markdown"
+					bot.Send(vmsg)
 				case "stats":
-					counts, err := db.GetCounts()
+					ownerChatID, err := strconv.Atoi(os.Getenv("TELEGRAM_OWNER_CHAT_ID"))
 					if err != nil {
 						log.Println(err)
+						continue
 					}
-					msg.Text = fmt.Sprintf("Cache writes: %d. Cache Reads: %d\nVK Requests: %d. VK Errors: %d, VK Auths: %d\nUsers: %d, Chats: %d, Messages: %d, CIRs: %d",
-						atomic.LoadUint64(&utils.CacheWriteAccessCounter),
-						atomic.LoadUint64(&utils.CacheReadAccessCounter),
-						atomic.LoadUint64(&vk.VKRequestCounter),
-						atomic.LoadUint64(&vk.VKErrorCounter),
-						atomic.LoadUint64(&vk.VKAuthCounter),
-						counts.UsersCount,
-						counts.ChatsCount,
-						counts.MsgCount,
-						counts.CIRCount,
-					)
+					if ownerChatID == update.Message.From.ID {
+						counts, err := db.GetCounts()
+						if err != nil {
+							log.Println(err)
+						}
+						msg.Text = fmt.Sprintf("Cache writes: %d. Cache Reads: %d\nVK Requests: %d. VK Errors: %d, VK Auths: %d\nUsers: %d, Chats: %d, Messages: %d, CIRs: %d",
+							atomic.LoadUint64(&utils.CacheWriteAccessCounter),
+							atomic.LoadUint64(&utils.CacheReadAccessCounter),
+							atomic.LoadUint64(&vk.VKRequestCounter),
+							atomic.LoadUint64(&vk.VKErrorCounter),
+							atomic.LoadUint64(&vk.VKAuthCounter),
+							counts.UsersCount,
+							counts.ChatsCount,
+							counts.MsgCount,
+							counts.CIRCount,
+						)
+					}
 					bot.Send(msg)
+				default:
+					vmsg := tgbotapi.NewVideoShare(update.Message.Chat.ID, "BAACAgQAAxkBAAEC4ldgPEYjDqBsUkTuzf_tvW62CJHnUQAChggAAqMD4FFp_uSLOlhNsx4E")
+					vmsg.Caption = fmt.Sprintf(replics.StartHelp, strings.ReplaceAll(bot.Self.UserName, "_", "\\_"))
+					vmsg.ParseMode = "markdown"
+					bot.Send(vmsg)
 				}
 			} else if update.Message.Audio != nil {
 				go db.PutMessageAsync(update.Message)
@@ -623,7 +743,7 @@ func process(bot *tgbotapi.BotAPI, updates tgbotapi.UpdatesChannel) {
 					msg.ReplyMarkup = &tgbotapi.InlineKeyboardMarkup{
 						InlineKeyboard: [][]tgbotapi.InlineKeyboardButton{{
 							tgbotapi.InlineKeyboardButton{
-								Text:                         "Search Artist",
+								Text:                         replics.ButtonSearchArtist,
 								SwitchInlineQueryCurrentChat: &switchInlineQuery,
 							},
 						}},
@@ -699,11 +819,11 @@ func process(bot *tgbotapi.BotAPI, updates tgbotapi.UpdatesChannel) {
 								msg.ReplyMarkup = &tgbotapi.InlineKeyboardMarkup{
 									InlineKeyboard: [][]tgbotapi.InlineKeyboardButton{{
 										tgbotapi.InlineKeyboardButton{
-											Text:         "Lyrics",
+											Text:         replics.ButtonLyrics,
 											CallbackData: &callBackData,
 										},
 										tgbotapi.InlineKeyboardButton{
-											Text:                         "Search Artist",
+											Text:                         replics.ButtonSearchArtist,
 											SwitchInlineQueryCurrentChat: &switchInlineQuery,
 										},
 									}},
@@ -713,11 +833,11 @@ func process(bot *tgbotapi.BotAPI, updates tgbotapi.UpdatesChannel) {
 								msg.ReplyMarkup = &tgbotapi.InlineKeyboardMarkup{
 									InlineKeyboard: [][]tgbotapi.InlineKeyboardButton{{
 										tgbotapi.InlineKeyboardButton{
-											Text:         "Lyrics",
+											Text:         replics.ButtonLyrics,
 											CallbackData: &callBackData,
 										},
 										tgbotapi.InlineKeyboardButton{
-											Text:                         "Search Artist",
+											Text:                         replics.ButtonSearchArtist,
 											SwitchInlineQueryCurrentChat: &switchInlineQuery,
 										},
 									}},
