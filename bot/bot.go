@@ -572,7 +572,7 @@ func process(bot *tgbotapi.BotAPI, updates tgbotapi.UpdatesChannel) {
 				switch update.Message.Command() {
 				case "help":
 					msg.Text = fmt.Sprintf(replics.AllHelp, strings.ReplaceAll(bot.Self.UserName, "_", "\\_"))
-					msg.ReplyMarkup = "markdown"
+					msg.ParseMode = "markdown"
 					switchInlineQuery := ""
 					msg.DisableWebPagePreview = true
 					msg.ReplyMarkup = &tgbotapi.InlineKeyboardMarkup{
