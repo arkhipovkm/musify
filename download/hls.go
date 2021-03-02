@@ -35,7 +35,7 @@ func httpFetch(uri string) ([]byte, error) {
 	return body, nil
 }
 
-func fetchM3U8Playlist(uri string) (*m3u8.MediaPlaylist, string, error) {
+func FetchM3U8Playlist(uri string) (*m3u8.MediaPlaylist, string, error) {
 	var err error
 	client := &http.Client{
 		CheckRedirect: func(req *http.Request, via []*http.Request) error {
@@ -53,7 +53,7 @@ func fetchM3U8Playlist(uri string) (*m3u8.MediaPlaylist, string, error) {
 			return nil, uri, err
 		}
 		log.Printf("Redirect on fetchM3U8Playlist: %s\n", resp.Status)
-		return fetchM3U8Playlist(redirectURL.String())
+		return FetchM3U8Playlist(redirectURL.String())
 	}
 	p, _, err := m3u8.DecodeFrom(resp.Body, false)
 	if err != nil {
@@ -63,7 +63,7 @@ func fetchM3U8Playlist(uri string) (*m3u8.MediaPlaylist, string, error) {
 	return playlist, uri, err
 }
 
-func fetchM3U8Segment(key, iv []byte, uri, path string, errChan chan error) {
+func FetchM3U8Segment(key, iv []byte, uri, path string, errChan chan error) {
 	var err error
 	data, err := httpFetch(uri)
 	if err != nil {
@@ -88,7 +88,7 @@ func fetchM3U8Segment(key, iv []byte, uri, path string, errChan chan error) {
 	errChan <- err
 }
 
-func fetchM3U8Track(uri, path string) error {
+func FetchM3U8Track(uri, path string) error {
 	var err error
 	// parsedURI, _ := url.Parse(uri)
 	myListPath := filepath.Join(path, "tslist.txt")
@@ -100,7 +100,7 @@ func fetchM3U8Track(uri, path string) error {
 
 	keySet := make(map[string]bool)
 	keyValues := make(map[string][]byte)
-	mediapl, uri, err := fetchM3U8Playlist(uri)
+	mediapl, uri, err := FetchM3U8Playlist(uri)
 	if err != nil {
 		return err
 	}
@@ -131,7 +131,7 @@ func fetchM3U8Track(uri, path string) error {
 			tsPath := filepath.Join(path, fmt.Sprintf("%d.ts", i))
 			absoluteSegmentURI := filepath.ToSlash(filepath.Join(filepath.Dir(uri), segment.URI))
 			absoluteSegmentURI = strings.ReplaceAll(absoluteSegmentURI, ":/", "://")
-			go fetchM3U8Segment(keyValue, iv, absoluteSegmentURI, tsPath, errChan)
+			go FetchM3U8Segment(keyValue, iv, absoluteSegmentURI, tsPath, errChan)
 			i++
 		}
 	}
@@ -150,7 +150,7 @@ func HLS(uri string) ([]byte, error) {
 	path := filepath.Base(filepath.Dir(uri)) + "_" + utils.RandSeq(4)
 	_ = os.Mkdir(path, os.ModePerm)
 	defer os.RemoveAll(path)
-	err = fetchM3U8Track(uri, path)
+	err = FetchM3U8Track(uri, path)
 	if err != nil {
 		return nil, err
 	}
