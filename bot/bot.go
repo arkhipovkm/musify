@@ -23,7 +23,7 @@ import (
 	"github.com/google/uuid"
 )
 
-var N_RESULTS int = 10
+	var N_RESULTS int = 10
 var VK_USER *vk.User = vk.NewDefaultUser()
 
 var CaptchaSID string
@@ -120,7 +120,7 @@ func vkAuthLoop() {
 		if err != nil {
 			log.Println(err)
 		}
-		time.Sleep(12 * time.Hour)
+		time.Sleep(23 * time.Hour)
 		utils.ClearCache(VK_USER.RemixSID)
 	}
 }
