@@ -209,6 +209,21 @@ func PutLyrics(performer, album, title, text, coverURL string) (int64, error) {
 	return id, err
 }
 
+func UpdateUserLastVkSearchee(userID int, searcheeID int) error {
+	var err error
+	if DB == nil {
+		return nil
+	}
+	_, err = DB.Exec("UPDATE users SET last_vk_searchee = ? WHERE id = ?",
+		searcheeID,
+		userID,
+	)
+	if err != nil {
+		return fmt.Errorf("Error updating last vk searchee: %s", err)
+	}
+	return err
+}
+
 func PutMessageAsync(msg *tgbotapi.Message) {
 	err := PutMessage(msg)
 	if err != nil {

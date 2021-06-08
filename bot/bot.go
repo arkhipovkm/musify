@@ -23,7 +23,7 @@ import (
 	"github.com/google/uuid"
 )
 
-	var N_RESULTS int = 10
+var N_RESULTS int = 10
 var VK_USER *vk.User = vk.NewDefaultUser()
 
 var CaptchaSID string
@@ -413,6 +413,11 @@ func process(bot *tgbotapi.BotAPI, updates tgbotapi.UpdatesChannel) {
 
 				log.Printf("Converted the %s user into its main album id: %s", userID, albumID)
 
+				err = db.UpdateUserLastVkSearchee(update.InlineQuery.From.ID, searcheeUser.ID)
+				if err != nil {
+					log.Println(err)
+				}
+
 				inlineQueryAnswer.Results, inlineQueryAnswer.NextOffset, err = getAlbumInlineResults(albumID, offset, N_RESULTS, query, VK_USER)
 				if err != nil {
 					log.Println(err)
@@ -445,6 +450,12 @@ func process(bot *tgbotapi.BotAPI, updates tgbotapi.UpdatesChannel) {
 				searcheeUser := searcheeUsers[0]
 				albumID := fmt.Sprintf("%d_-1", searcheeUser.ID)
 				log.Printf("Converted the %s user into its main album id: %s", userID, albumID)
+
+				err = db.UpdateUserLastVkSearchee(update.InlineQuery.From.ID, searcheeUser.ID)
+				if err != nil {
+					log.Println(err)
+				}
+
 				inlineQueryAnswer.Results, inlineQueryAnswer.NextOffset, err = getAlbumInlineResults(albumID, offset, N_RESULTS, "", VK_USER)
 				if err != nil {
 					log.Println(err)
