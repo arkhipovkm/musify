@@ -162,7 +162,9 @@ func extractRawHTML(payload map[string]interface{}) ([]byte, error) {
 	return []byte(rawHTML), err
 }
 
-func doPOSTRequest(uri string, data url.Values, u *User) []byte {
+func doPOSTRequest(uri string, data url.Values, u *User) ([]byte, error) {
+	var err error
+	var body []byte
 	URL, _ := url.Parse(uri)
 	cookie := http.Cookie{
 		Name:  "remixsid",
@@ -173,14 +175,20 @@ func doPOSTRequest(uri string, data url.Values, u *User) []byte {
 	client := &http.Client{
 		Jar: jar,
 	}
-	resp, _ := client.PostForm(URL.String(), data)
-	body, _ := ioutil.ReadAll(resp.Body)
+	resp, err := client.PostForm(URL.String(), data)
+	if err != nil {
+		return body, err
+	}
 	defer resp.Body.Close()
+	body, err = ioutil.ReadAll(resp.Body)
+	if err != nil {
+		return body, err
+	}
 	utf8Body, _, _ := transform.Bytes(charmap.Windows1251.NewDecoder(), body)
-	return utf8Body
+	return utf8Body, err
 }
 
-func loadSectionPOST(ownerID, playlistID, offset int, accessHash string, u *User) []byte {
+func loadSectionPOST(ownerID, playlistID, offset int, accessHash string, u *User) ([]byte, error) {
 	data := url.Values{
 		"act":            {"load_section"},
 		"owner_id":       {strconv.Itoa(ownerID)},
@@ -195,7 +203,7 @@ func loadSectionPOST(ownerID, playlistID, offset int, accessHash string, u *User
 	return doPOSTRequest(uri, data, u)
 }
 
-func reloadAudioPOST(ids []string, u *User) []byte {
+func reloadAudioPOST(ids []string, u *User) ([]byte, error) {
 	sIds := strings.Join(ids, ",")
 	data := url.Values{
 		"act": []string{"reload_audio"},
@@ -206,7 +214,7 @@ func reloadAudioPOST(ids []string, u *User) []byte {
 	return doPOSTRequest(uri, data, u)
 }
 
-func searchPOST(query string, offset int, u *User) []byte {
+func searchPOST(query string, offset int, u *User) ([]byte, error) {
 	data := url.Values{
 		"al":           {"1"},
 		"offset":       {strconv.Itoa(offset)},
@@ -218,7 +226,7 @@ func searchPOST(query string, offset int, u *User) []byte {
 	return doPOSTRequest(uri, data, u)
 }
 
-func sectionPOST(query string, u *User) []byte {
+func sectionPOST(query string, u *User) ([]byte, error) {
 	data := url.Values{
 		"act":      {"section"},
 		"al":       {"1"},
@@ -233,8 +241,16 @@ func sectionPOST(query string, u *User) []byte {
 }
 
 func reloadAudio(ids []string, u *User, ch chan [][]interface{}) {
-	body := reloadAudioPOST(ids, u)
+	body, err := reloadAudioPOST(ids, u)
+	if err != nil {
+		log.Println("Reload Audio Error. Ids:", ids)
+		log.Println(err)
+	}
 	payload, err := extractPayload(body)
+	if err != nil {
+		log.Println("Reload Audio Error. Ids:", ids)
+		log.Println(err)
+	}
 	rawAudios, err := extractRawAudios(payload)
 	if err != nil {
 		log.Println("Reload Audio Error. Ids:", ids)
@@ -244,8 +260,14 @@ func reloadAudio(ids []string, u *User, ch chan [][]interface{}) {
 }
 
 func alSearch(query string, offset int, u *User, ch chan []byte) {
-	body := searchPOST(query, offset, u)
+	body, err := searchPOST(query, offset, u)
+	if err != nil {
+		log.Println(err)
+	}
 	payload, err := extractPayload(body)
+	if err != nil {
+		log.Println(err)
+	}
 	rawHTML, err := extractRawHTML(payload)
 	if err != nil {
 		log.Println(err)
@@ -254,7 +276,10 @@ func alSearch(query string, offset int, u *User, ch chan []byte) {
 }
 
 func alSection(query string, u *User) ([]string, *Playlist, error) {
-	body := sectionPOST(query, u)
+	body, err := sectionPOST(query, u)
+	if err != nil {
+		return nil, nil, err
+	}
 	payload, err := extractPayload(body)
 	if err != nil {
 		return nil, nil, err
@@ -286,6 +311,23 @@ func alSection(query string, u *User) ([]string, *Playlist, error) {
 		lastPlaylist = NewPlaylist(playlists[len(playlists)-1])
 	}
 	return playlistIDs, lastPlaylist, nil
+}
+
+func GetAlSectionRawHTML(query string, u *User) (string, error) {
+	var rawHTML string
+	body, err := sectionPOST(query, u)
+	if err != nil {
+		return rawHTML, err
+	}
+	payload, err := extractPayload(body)
+	if err != nil {
+		return rawHTML, err
+	}
+	rawHTML, _, err = extractRawSection(payload)
+	if err != nil {
+		return rawHTML, err
+	}
+	return rawHTML, err
 }
 
 func acquireURLs(audioList []*Audio, u *User) error {
@@ -778,8 +820,18 @@ func LoadPlaylist(id string, u *User) *Playlist {
 
 	var offset int = 2000
 
-	body := loadSectionPOST(ownerID, playlistID, -offset, accessHash, u)
+	body, err := loadSectionPOST(ownerID, playlistID, -offset, accessHash, u)
+	if err != nil {
+		log.Println("Load Playlist Error. Id:", id)
+		log.Println(err)
+		return nil
+	}
 	payload, err := extractPayload(body)
+	if err != nil {
+		log.Println("Load Playlist Error. Id:", id)
+		log.Println(err)
+		return nil
+	}
 	rawPlaylist, err := extractRawPlaylist(payload)
 	if err != nil {
 		log.Println("Load Playlist Error. Id:", id)
@@ -791,8 +843,18 @@ func LoadPlaylist(id string, u *User) *Playlist {
 		for {
 			if offset <= playlist.TotalCount {
 				offset += 2000
-				nBody := loadSectionPOST(ownerID, playlistID, -offset, accessHash, u)
+				nBody, err := loadSectionPOST(ownerID, playlistID, -offset, accessHash, u)
+				if err != nil {
+					log.Printf("Load Playlist Error on offset: %d. Id: %s\n", offset, id)
+					log.Println(err)
+					break
+				}
 				nPayload, err := extractPayload(nBody)
+				if err != nil {
+					log.Printf("Load Playlist Error on offset: %d. Id: %s\n", offset, id)
+					log.Println(err)
+					break
+				}
 				nRawPlaylist, err := extractRawPlaylist(nPayload)
 				if err != nil {
 					log.Printf("Load Playlist Error on offset: %d. Id: %s\n", offset, id)
