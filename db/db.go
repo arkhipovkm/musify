@@ -224,6 +224,23 @@ func UpdateUserLastVkSearchee(userID int, searcheeID int) error {
 	return err
 }
 
+func GetuserLastVkSearchee(userID int) (int, error) {
+	var err error
+	var searcheeID int
+
+	if DB == nil {
+		return searcheeID, err
+	}
+
+	resp := DB.QueryRow(
+		"SELECT last_vk_searchee FROM users WHERE id = ?",
+		userID,
+	)
+	resp.Scan(&searcheeID)
+
+	return searcheeID, err
+}
+
 func PutMessageAsync(msg *tgbotapi.Message) {
 	err := PutMessage(msg)
 	if err != nil {

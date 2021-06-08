@@ -348,18 +348,29 @@ func process(bot *tgbotapi.BotAPI, updates tgbotapi.UpdatesChannel) {
 			inlineQueryAnswer := tgbotapi.InlineConfig{
 				InlineQueryID: update.InlineQuery.ID,
 				CacheTime:     cacheTime,
-				IsPersonal:    false,
+				IsPersonal:    true,
 			}
-			// if update.InlineQuery.Query == "" || update.InlineQuery.Query == " " {
-			// 	_, err := bot.AnswerInlineQuery(inlineQueryAnswer)
-			// 	if err != nil {
-			// 		log.Println(err)
-			// 	}
-			// 	continue
-			// } else {
 			var offset int
 			if update.InlineQuery.Offset != "" {
 				offset, _ = strconv.Atoi(update.InlineQuery.Offset)
+			}
+			if update.InlineQuery.Query == "" || update.InlineQuery.Query == " " {
+				var err error
+				searcheeID, err := db.GetuserLastVkSearchee(update.InlineQuery.From.ID)
+				if err != nil || searcheeID == 0 {
+					log.Println(err)
+				} else {
+					albumID := fmt.Sprintf("%d_-1", searcheeID)
+					inlineQueryAnswer.Results, inlineQueryAnswer.NextOffset, err = getAlbumInlineResults(albumID, offset, N_RESULTS, "", VK_USER)
+					if err != nil {
+						log.Println(err)
+					}
+				}
+				_, err = bot.AnswerInlineQuery(inlineQueryAnswer)
+				if err != nil {
+					log.Println(err)
+				}
+				continue
 			}
 			if InlineReAlbumAndQuery.MatchString(update.InlineQuery.Query) {
 				parts := InlineReAlbumAndQuery.FindStringSubmatch(update.InlineQuery.Query)
