@@ -358,7 +358,7 @@ func process(bot *tgbotapi.BotAPI, updates tgbotapi.UpdatesChannel) {
 				var err error
 				searcheeID, err := db.GetuserLastVkSearchee(update.InlineQuery.From.ID)
 				if err != nil || searcheeID == 0 {
-					log.Println(err)
+					log.Println("Getting SearcheeID: ", err, searcheeID)
 				} else {
 					albumID := fmt.Sprintf("%d_-1", searcheeID)
 					inlineQueryAnswer.Results, inlineQueryAnswer.NextOffset, err = getAlbumInlineResults(albumID, offset, N_RESULTS, "", VK_USER)
@@ -401,32 +401,47 @@ func process(bot *tgbotapi.BotAPI, updates tgbotapi.UpdatesChannel) {
 				parts := InlineReUserAndQuery.FindStringSubmatch(update.InlineQuery.Query)
 				userID := parts[1]
 				query := parts[2]
-				log.Println("User search + Query:", query, ".")
-				searcheeUsers, err := vk.UsersGet(userID)
-				if err != nil {
-					log.Println(err)
-					_, err = bot.AnswerInlineQuery(inlineQueryAnswer)
-					if err != nil {
-						log.Println(err)
-					}
-					continue
-				}
-				if searcheeUsers == nil || len(searcheeUsers) == 0 {
-					log.Println("No such VK user:", userID)
-					_, err = bot.AnswerInlineQuery(inlineQueryAnswer)
-					if err != nil {
-						log.Println(err)
-					}
-					continue
-				}
-				searcheeUser := searcheeUsers[0]
-				albumID := fmt.Sprintf("%d_-1", searcheeUser.ID)
+				log.Println("User search + Query:", query, ".", "UserID: ", userID)
 
+				var searcheeID int
+
+				if userID == "" {
+					searcheeID, err = db.GetuserLastVkSearchee(update.InlineQuery.From.ID)
+					if err != nil || searcheeID == 0 {
+						log.Println("Error getting searcheeID: ", err, searcheeID)
+						continue
+					}
+					log.Println("Found searcheeID: ", searcheeID, ". Proceeding with it..")
+				} else {
+					searcheeUsers, err := vk.UsersGet(userID)
+					if err != nil {
+						log.Println(err)
+						_, err = bot.AnswerInlineQuery(inlineQueryAnswer)
+						if err != nil {
+							log.Println(err)
+						}
+						continue
+					}
+					if searcheeUsers == nil || len(searcheeUsers) == 0 {
+						log.Println("No such VK user:", userID)
+						_, err = bot.AnswerInlineQuery(inlineQueryAnswer)
+						if err != nil {
+							log.Println(err)
+						}
+						continue
+					}
+					searcheeUser := searcheeUsers[0]
+					searcheeID = searcheeUser.ID
+				}
+
+				albumID := fmt.Sprintf("%d_-1", searcheeID)
 				log.Printf("Converted the %s user into its main album id: %s", userID, albumID)
 
-				err = db.UpdateUserLastVkSearchee(update.InlineQuery.From.ID, searcheeUser.ID)
-				if err != nil {
-					log.Println(err)
+				if searcheeID > 0 {
+					err = db.UpdateUserLastVkSearchee(update.InlineQuery.From.ID, searcheeID)
+					if err != nil {
+						log.Println(err)
+					}
 				}
 
 				inlineQueryAnswer.Results, inlineQueryAnswer.NextOffset, err = getAlbumInlineResults(albumID, offset, N_RESULTS, query, VK_USER)
@@ -441,30 +456,47 @@ func process(bot *tgbotapi.BotAPI, updates tgbotapi.UpdatesChannel) {
 			} else if InlineReUser.MatchString(update.InlineQuery.Query) {
 				parts := InlineReUser.FindStringSubmatch(update.InlineQuery.Query)
 				userID := parts[1]
-				searcheeUsers, err := vk.UsersGet(userID)
-				if err != nil {
-					log.Println(err)
-					_, err = bot.AnswerInlineQuery(inlineQueryAnswer)
+				log.Println("User search. UserID: ", userID)
+
+				var searcheeID int
+
+				if userID == "" {
+					searcheeID, err = db.GetuserLastVkSearchee(update.InlineQuery.From.ID)
+					if err != nil || searcheeID == 0 {
+						log.Println("Error getting searcheeID: ", err, searcheeID)
+						continue
+					}
+					log.Println("Found searcheeID: ", searcheeID, ". Proceeding with it..")
+				} else {
+					searcheeUsers, err := vk.UsersGet(userID)
 					if err != nil {
 						log.Println(err)
+						_, err = bot.AnswerInlineQuery(inlineQueryAnswer)
+						if err != nil {
+							log.Println(err)
+						}
+						continue
 					}
-					continue
-				}
-				if searcheeUsers == nil || len(searcheeUsers) == 0 {
-					log.Println("No such VK user:", userID)
-					_, err = bot.AnswerInlineQuery(inlineQueryAnswer)
-					if err != nil {
-						log.Println(err)
+					if searcheeUsers == nil || len(searcheeUsers) == 0 {
+						log.Println("No such VK user:", userID)
+						_, err = bot.AnswerInlineQuery(inlineQueryAnswer)
+						if err != nil {
+							log.Println(err)
+						}
+						continue
 					}
-					continue
+					searcheeUser := searcheeUsers[0]
+					searcheeID = searcheeUser.ID
 				}
-				searcheeUser := searcheeUsers[0]
-				albumID := fmt.Sprintf("%d_-1", searcheeUser.ID)
+
+				albumID := fmt.Sprintf("%d_-1", searcheeID)
 				log.Printf("Converted the %s user into its main album id: %s", userID, albumID)
 
-				err = db.UpdateUserLastVkSearchee(update.InlineQuery.From.ID, searcheeUser.ID)
-				if err != nil {
-					log.Println(err)
+				if searcheeID > 0 {
+					err = db.UpdateUserLastVkSearchee(update.InlineQuery.From.ID, searcheeID)
+					if err != nil {
+						log.Println(err)
+					}
 				}
 
 				inlineQueryAnswer.Results, inlineQueryAnswer.NextOffset, err = getAlbumInlineResults(albumID, offset, N_RESULTS, "", VK_USER)

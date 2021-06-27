@@ -142,12 +142,16 @@ func PutMessage(msg *tgbotapi.Message) error {
 		}
 	}
 	if msg.Chat != nil && msg.From != nil {
+		var fileID *string = nil
+		if msg.Audio != nil {
+			fileID = &msg.Audio.FileID
+		}
 		_, err = DB.Exec("INSERT INTO messages (message_id, date, from_id, chat_id, audio_id) VALUES (?, ?, ?, ?, ?)",
 			msg.MessageID,
 			msg.Date,
 			msg.From.ID,
 			msg.Chat.ID,
-			msg.Audio.FileID,
+			fileID,
 		)
 		if err != nil {
 			return fmt.Errorf("Error inserting Message: %s", err)
@@ -163,6 +167,9 @@ func PutChosenInlineResult(cir *tgbotapi.ChosenInlineResult) error {
 	var err error
 	if DB == nil {
 		return nil
+	}
+	if cir.From == nil {
+		return err
 	}
 	_, err = DB.Exec("INSERT IGNORE INTO users (id, username, first_name, last_name, language_code, is_bot) VALUES (?, ?, ?, ?, ?, ?)",
 		cir.From.ID,
@@ -236,8 +243,7 @@ func GetuserLastVkSearchee(userID int) (int, error) {
 		"SELECT last_vk_searchee FROM users WHERE id = ?",
 		userID,
 	)
-	resp.Scan(&searcheeID)
-
+	err = resp.Scan(&searcheeID)
 	return searcheeID, err
 }
 
