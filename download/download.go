@@ -13,15 +13,22 @@ import (
 
 func Download(audio *vk.Audio, filename string) error {
 	var err error
+	var n int
 	if strings.Contains(audio.URL, ".m3u8") {
 		re := regexp.MustCompile("/[0-9a-f]+(/audios)?/([0-9a-f]+)/index.m3u8")
-		audio.URL = re.ReplaceAllString(audio.URL, "$1/$2.mp3")
-		_, _, err = MP3File(audio.URL, filename)
+		replacedAudioURL := re.ReplaceAllString(audio.URL, "$1/$2.mp3")
+		if audio.URL == replacedAudioURL {
+			log.Println("Failed to replace HLS to MP3. Proceeding in HLS mode (requires ffmpeg)")
+			_, n, err = HLSFile(audio.URL, filename)
+		} else {
+			_, n, err = MP3File(replacedAudioURL, filename)
+		}
 	} else if strings.Contains(audio.URL, ".mp3") {
-		_, _, err = MP3File(audio.URL, filename)
+		_, n, err = MP3File(audio.URL, filename)
 	} else {
 		err = fmt.Errorf("Unsupported file type: %s", filepath.Base(filepath.Dir(audio.URL)))
 	}
+	log.Printf("Downloaded %d bytes\n", n)
 	return err
 }
 
@@ -37,13 +44,15 @@ func DownloadAPICs(audio *vk.Audio, album *vk.Playlist) ([]byte, []byte) {
 		apicCover = audio.CoverURLp
 	}
 
-	if audio.CoverURLp != "" {
+	if apicCover != "" {
+		log.Println("Fetching apic cover (large):", apicCover)
 		go utils.HttpGETChan(apicCover, apicDataChan, apicErrChan)
 	} else {
 		apicErrChan <- nil
 		apicDataChan <- nil
 	}
 	if audio.CoverURLs != "" {
+		log.Println("Fetching apic icon (small):", audio.CoverURLs)
 		go utils.HttpGETChan(audio.CoverURLs, apicDataChan, apicErrChan)
 	} else {
 		apicErrChan <- nil
