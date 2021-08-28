@@ -1,0 +1,15 @@
+*
+!bot/*
+!db/*
+!download/*
+!happidev/*
+!server/*
+!utils/*
+!vk/*
+
+!main.go
+
+!go.mod
+!go.sum
+
+!musify-db.sql

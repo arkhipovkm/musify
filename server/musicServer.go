@@ -95,8 +95,13 @@ func musicHandler(w http.ResponseWriter, r *http.Request) {
 	var n int
 	if strings.Contains(decodedURI, ".m3u8") {
 		re := regexp.MustCompile("/[0-9a-f]+(/audios)?/([0-9a-f]+)/index.m3u8")
-		decodedURI = re.ReplaceAllString(decodedURI, "$1/$2.mp3")
-		filename, n, err = download.MP3File(string(decodedURI), "")
+		replacedDecodedURI := re.ReplaceAllString(decodedURI, "$1/$2.mp3")
+		log.Printf("M3U8. Replaced URI: %s\n", replacedDecodedURI)
+		if replacedDecodedURI != decodedURI {
+			filename, n, err = download.MP3File(string(replacedDecodedURI), "")
+		} else {
+			filename, n, err = download.HLSFile(string(decodedURI), "")
+		}
 	} else if strings.Contains(decodedURI, ".mp3") {
 		filename, n, err = download.MP3File(string(decodedURI), "")
 	} else {
