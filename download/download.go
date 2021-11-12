@@ -26,7 +26,7 @@ func Download(audio *vk.Audio, filename string) error {
 	} else if strings.Contains(audio.URL, ".mp3") {
 		_, n, err = MP3File(audio.URL, filename)
 	} else {
-		err = fmt.Errorf("Unsupported file type: %s", filepath.Base(filepath.Dir(audio.URL)))
+		err = fmt.Errorf("unsupported file type: %s", filepath.Base(filepath.Dir(audio.URL)))
 	}
 	log.Printf("Downloaded %d bytes\n", n)
 	return err

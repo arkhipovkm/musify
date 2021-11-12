@@ -1,6 +1,7 @@
 package download
 
 import (
+	"bytes"
 	"crypto/aes"
 	"crypto/cipher"
 	"errors"
@@ -26,7 +27,7 @@ func httpFetch(uri string) ([]byte, error) {
 	}
 	defer resp.Body.Close()
 	if resp.StatusCode > 400 {
-		return nil, errors.New(resp.Status)
+		return nil, fmt.Errorf("%d: %s", resp.StatusCode, resp.Status)
 	}
 	body, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
@@ -63,108 +64,137 @@ func FetchM3U8Playlist(uri string) (*m3u8.MediaPlaylist, string, error) {
 	return playlist, uri, err
 }
 
-func FetchM3U8Segment(key, iv []byte, uri, path string, errChan chan error) {
+type fetchedSegmentResult struct {
+	i    uint8
+	data []byte
+	err  error
+}
+
+func FetchM3U8Segment(i uint8, key []byte, uri string, resultChan chan fetchedSegmentResult) {
 	var err error
 	data, err := httpFetch(uri)
 	if err != nil {
-		errChan <- err
+		resultChan <- fetchedSegmentResult{
+			i:    i,
+			data: data,
+			err:  err,
+		}
 	}
 	if key != nil {
+
+		iv := make([]byte, len(key))
+		iv[len(key)-1] = i
+
 		block, err := aes.NewCipher(key)
 		if err != nil {
-			errChan <- err
+			resultChan <- fetchedSegmentResult{
+				i:    i,
+				data: data,
+				err:  err,
+			}
 		}
 		if len(data)%aes.BlockSize != 0 {
-			err = fmt.Errorf("Ciphertext is not a multiple of the block size. len(data)=%d, len(block)=%d", len(data), aes.BlockSize)
-			errChan <- err
+			err = fmt.Errorf("ciphertext is not a multiple of the block size. len(data)=%d, len(block)=%d", len(data), aes.BlockSize)
+			resultChan <- fetchedSegmentResult{
+				i:    i,
+				data: data,
+				err:  err,
+			}
 		}
 		mode := cipher.NewCBCDecrypter(block, iv)
 		mode.CryptBlocks(data, data)
 	}
-	err = ioutil.WriteFile(path, data, os.ModePerm)
-	if err != nil {
-		errChan <- err
+	resultChan <- fetchedSegmentResult{
+		i:    i,
+		data: data,
+		err:  err,
 	}
-	errChan <- err
 }
 
-func FetchM3U8Track(uri, path string) error {
+func FetchM3U8Track(uri string) ([]byte, error) {
 	var err error
-	// parsedURI, _ := url.Parse(uri)
-	myListPath := filepath.Join(path, "tslist.txt")
-	myListFile, err := os.Create(myListPath)
-	if err != nil {
-		return err
-	}
-	// defer myListFile.Close()
+	var tsData []byte
 
 	keySet := make(map[string]bool)
 	keyValues := make(map[string][]byte)
 	mediapl, uri, err := FetchM3U8Playlist(uri)
 	if err != nil {
-		return err
+		return tsData, err
 	}
-	errChan := make(chan error, len(mediapl.Segments))
+
+	segCnt := 0
+	for _, seg := range mediapl.Segments {
+		if seg != nil {
+			segCnt++
+		}
+	}
+	resultChan := make(chan fetchedSegmentResult, segCnt)
+
 	var i uint8
 	for _, segment := range mediapl.Segments {
 		if segment != nil {
 			var keyValue []byte
-			var iv []byte
 			if segment.Key != nil && segment.Key.Method != "NONE" {
 				if keySet[segment.Key.URI] {
 					keyValue = keyValues[segment.Key.URI]
 				} else {
 					keyValue, err = httpFetch(segment.Key.URI)
 					if err != nil {
-						return err
+						return tsData, err
 					}
 					keySet[segment.Key.URI] = true
 					keyValues[segment.Key.URI] = keyValue
 				}
-				iv = make([]byte, len(keyValue))
-				iv[len(keyValue)-1] = i
 			}
-			_, err = myListFile.WriteString(fmt.Sprintf("file '%d.ts'\n", i))
-			if err != nil {
-				return err
-			}
-			tsPath := filepath.Join(path, fmt.Sprintf("%d.ts", i))
+
 			absoluteSegmentURI := filepath.ToSlash(filepath.Join(filepath.Dir(uri), segment.URI))
 			absoluteSegmentURI = strings.ReplaceAll(absoluteSegmentURI, ":/", "://")
-			go FetchM3U8Segment(keyValue, iv, absoluteSegmentURI, tsPath, errChan)
+			go FetchM3U8Segment(i, keyValue, absoluteSegmentURI, resultChan)
 			i++
 		}
 	}
-	for j := 0; j < int(i); j++ {
-		err = <-errChan
-		if err != nil {
-			return err
+	chunks := make([][]byte, segCnt)
+	for jj := 0; jj < int(i); jj++ {
+		res := <-resultChan
+		if res.err != nil {
+			return tsData, res.err
+		}
+		chunks[res.i] = res.data
+		if jj == segCnt-1 {
+			break
 		}
 	}
-	return err
+	for _, chunk := range chunks {
+		tsData = append(tsData, chunk...)
+	}
+	return tsData, err
 }
 
 // HLS downloads an audio using HLS protocol. Returns audio contents []byte
 func HLS(uri string) ([]byte, error) {
 	var err error
-	path := filepath.Base(filepath.Dir(uri)) + "_" + utils.RandSeq(4)
-	_ = os.Mkdir(path, os.ModePerm)
-	defer os.RemoveAll(path)
-	err = FetchM3U8Track(uri, path)
+	var out []byte
+
+	t0 := time.Now()
+	ts, err := FetchM3U8Track(uri)
 	if err != nil {
 		return nil, err
 	}
-	t0 := time.Now()
-	out, err := exec.Command(
+	t1 := time.Now()
+	log.Printf(
+		"HLS MPEG-TS downloaded in %.1f ms, %.1fMiB/s\n",
+		float64(t1.UnixNano()-t0.UnixNano())/float64(1e6),
+		(float64(len(ts))/float64(1024*1024))/(float64(t1.UnixNano()-t0.UnixNano())/float64(1e9)),
+	)
+
+	cmd := exec.Command(
 		"ffmpeg",
 		"-hide_banner",
 		"-loglevel",
 		"panic",
 		"-y",
-		"-f",
-		"concat",
 		"-i",
-		path+"/tslist.txt",
+		"-",
 		"-c",
 		"copy",
 		"-map",
@@ -172,16 +202,22 @@ func HLS(uri string) ([]byte, error) {
 		"-f",
 		"mp3",
 		"-",
-	).Output()
+	)
+	cmd.Stdin = bytes.NewReader(ts)
+	out, err = cmd.Output()
+
 	if err != nil {
-		err = errors.New("ffmpeg: " + err.Error())
+		err = errors.New("ffmpeg erorr: " + err.Error())
 		return nil, err
 	}
 
-	t1 := time.Now()
-	log.Printf("FFmpeg concat demuxer completed in %.1f ms\n", float64(t1.UnixNano()-t0.UnixNano())/float64(1e6))
+	t2 := time.Now()
+	log.Printf(
+		"FFmpeg concat demuxer completed in %.1f ms\n",
+		float64(t2.UnixNano()-t1.UnixNano())/float64(1e6),
+	)
 
-	return out, nil
+	return out, err
 }
 
 // HLSFile downloads an audio file using HLS protocol and writes the result into file
