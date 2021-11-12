@@ -1,8 +1,6 @@
 package utils
 
 import (
-	"log"
-
 	"github.com/arkhipovkm/id3-go"
 	v2 "github.com/arkhipovkm/id3-go/v2"
 )
@@ -15,7 +13,7 @@ import (
 // > Track number
 func SetID3Tag(tag *id3.File, performer, title, album, year, trck string) error {
 	var err error
-	log.Println("Setting ID3 Tag:", performer, title, album, year, trck)
+	// log.Println("Setting ID3 Tag:", performer, title, album, year, trck)
 	if performer != "" {
 		// fmt.Println("Setting performer: ", performer)
 		tag.DeleteFrames(v2.V23CommonFrame["Artist"].Id())
@@ -64,13 +62,13 @@ func SetID3TagAPICs(tag *id3.File, apicCover []byte, apicIcon []byte) error {
 	frameType := v2.V23FrameTypeMap["APIC"]
 	mimeType := "image/jpeg"
 	if apicCover != nil {
-		log.Println("Setting apicCover: ", len(apicCover))
+		// log.Println("Setting apicCover: ", len(apicCover))
 		apicCoverImageFrame := v2.NewImageFrame(frameType, mimeType, 3, "front cover", apicCover) // 3 for "Cover(front)"
 		apicCoverImageFrame.SetEncoding("ISO-8859-1")
 		tag.AddFrames(apicCoverImageFrame)
 	}
 	if apicIcon != nil {
-		log.Println("Setting apicIcon: ", len(apicIcon))
+		// log.Println("Setting apicIcon: ", len(apicIcon))
 		apicIconImageFrame := v2.NewImageFrame(frameType, mimeType, 2, "other icon", apicIcon) // 2 for "Other icon"
 		apicIconImageFrame.SetEncoding("ISO-8859-1")
 		tag.AddFrames(apicIconImageFrame)

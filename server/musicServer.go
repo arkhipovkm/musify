@@ -53,7 +53,6 @@ func musicHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	query := r.URL.Query()
-	log.Println("Query:", query)
 	performer := query.Get("performer")
 	title := query.Get("title")
 	album := query.Get("album")
@@ -61,6 +60,8 @@ func musicHandler(w http.ResponseWriter, r *http.Request) {
 	trck := query.Get("trck")
 	base64EncodedApicCoverURI := query.Get("apic_cover")
 	base64EncodedApicIconURI := query.Get("apic_icon")
+
+	log.Println("Audio request:", performer, title, album, year, trck)
 
 	errChan := make(chan error, 2)
 	dataChan := make(chan []byte, 2)
@@ -96,13 +97,15 @@ func musicHandler(w http.ResponseWriter, r *http.Request) {
 	if strings.Contains(decodedURI, ".m3u8") {
 		re := regexp.MustCompile("/[0-9a-f]+(/audios)?/([0-9a-f]+)/index.m3u8")
 		replacedDecodedURI := re.ReplaceAllString(decodedURI, "$1/$2.mp3")
-		log.Printf("M3U8. Replaced URI: %s\n", replacedDecodedURI)
 		if replacedDecodedURI != decodedURI {
+			log.Printf("Downloading audio in MP3 mode: %s\n", replacedDecodedURI)
 			filename, n, err = download.MP3File(string(replacedDecodedURI), "")
 		} else {
+			log.Printf("Downloading audio in HLS mode: %s\n", replacedDecodedURI)
 			filename, n, err = download.HLSFile(string(decodedURI), "")
 		}
 	} else if strings.Contains(decodedURI, ".mp3") {
+		log.Printf("Downloading audio in MP3 mode: %s\n", decodedURI)
 		filename, n, err = download.MP3File(string(decodedURI), "")
 	} else {
 		err = fmt.Errorf("Unsupported file type: %s", filepath.Base(filepath.Dir(decodedURI)))
@@ -165,7 +168,7 @@ func musicHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	t3 := time.Now()
-	log.Printf("ID3 in: %.1f ms\n", float64(t3.UnixNano()-t2.UnixNano())/float64(1e6))
+	log.Printf("Completed ID3 in: %.1f ms\n", float64(t3.UnixNano()-t2.UnixNano())/float64(1e6))
 
 	w.Header().Add("Content-Type", "audio/mpeg")
 	w.Write(fileData)
