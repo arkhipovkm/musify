@@ -92,7 +92,6 @@ func musicHandler(w http.ResponseWriter, r *http.Request) {
 	log.Printf("Request prepared in: %.1f ms\n", float64(t1.UnixNano()-t0.UnixNano())/float64(1e6))
 
 	var audioData []byte
-	var n int
 	if strings.Contains(decodedURI, ".m3u8") {
 		re := regexp.MustCompile("/[0-9a-f]+(/audios)?/([0-9a-f]+)/index.m3u8")
 		replacedDecodedURI := re.ReplaceAllString(decodedURI, "$1/$2.mp3")
@@ -136,7 +135,7 @@ func musicHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	t2 := time.Now()
-	log.Printf("Fetched audio: %d bytes in %.1f ms, %.1f MB/s\n", n, float64(t2.UnixNano()-t1.UnixNano())/float64(1e6), float64(n)/float64(1e6)/(float64(t2.UnixNano()-t1.UnixNano())/float64(1e9)))
+	log.Printf("Fetched audio: %d bytes in %.1f ms, %.1f MB/s\n", len(audioData), float64(t2.UnixNano()-t1.UnixNano())/float64(1e6), float64(n)/float64(1e6)/(float64(t2.UnixNano()-t1.UnixNano())/float64(1e9)))
 
 	id3Buffer, err := id3.ParseBuffer(audioData)
 	if err == nil {
