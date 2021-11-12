@@ -5,7 +5,6 @@ import (
 	"io/ioutil"
 	"log"
 	"net/http"
-	"os"
 	"path/filepath"
 	"regexp"
 	"strings"
@@ -91,21 +90,21 @@ func musicHandler(w http.ResponseWriter, r *http.Request) {
 	t1 := time.Now()
 	log.Printf("Request prepared in: %.1f ms\n", float64(t1.UnixNano()-t0.UnixNano())/float64(1e6))
 
-	var filename string
+	var audioData []byte
 	var n int
 	if strings.Contains(decodedURI, ".m3u8") {
 		re := regexp.MustCompile("/[0-9a-f]+(/audios)?/([0-9a-f]+)/index.m3u8")
 		replacedDecodedURI := re.ReplaceAllString(decodedURI, "$1/$2.mp3")
 		log.Printf("M3U8. Replaced URI: %s\n", replacedDecodedURI)
 		if replacedDecodedURI != decodedURI {
-			filename, n, err = download.MP3File(string(replacedDecodedURI), "")
+			audioData, err = download.MP3(string(replacedDecodedURI))
 		} else {
-			filename, n, err = download.HLSFile(string(decodedURI), "")
+			audioData, err = download.HLS(string(decodedURI))
 		}
 	} else if strings.Contains(decodedURI, ".mp3") {
-		filename, n, err = download.MP3File(string(decodedURI), "")
+		audioData, err = download.MP3(string(decodedURI))
 	} else {
-		err = fmt.Errorf("Unsupported file type: %s", filepath.Base(filepath.Dir(decodedURI)))
+		err = fmt.Errorf("unsupported file type: %s", filepath.Base(filepath.Dir(decodedURI)))
 		handleError(&w, err)
 		return
 	}
@@ -113,7 +112,6 @@ func musicHandler(w http.ResponseWriter, r *http.Request) {
 		handleError(&w, err)
 		return
 	}
-	defer os.Remove(filename)
 
 	for i := 0; i < 2; i++ {
 		err := <-errChan
@@ -137,47 +135,33 @@ func musicHandler(w http.ResponseWriter, r *http.Request) {
 	t2 := time.Now()
 	log.Printf("Fetched audio: %d bytes in %.1f ms, %.1f MB/s\n", n, float64(t2.UnixNano()-t1.UnixNano())/float64(1e6), float64(n)/float64(1e6)/(float64(t2.UnixNano()-t1.UnixNano())/float64(1e9)))
 
-	id3File, err := id3.Open(filename)
-	if err != nil {
-		id3File.Close()
-		fileData, err := ioutil.ReadFile(filename)
-		if err != nil {
-			handleError(&w, err)
-			return
-		}
-		w.Header().Add("Content-Type", "audio/mpeg")
-		w.Write(fileData)
-
-		t4 := time.Now()
-		log.Printf("Request fulfilled in: %.1f ms\n", float64(t4.UnixNano()-t0.UnixNano())/float64(1e6))
-
-		log.Println("OK")
-		return
-	}
-	defer id3File.Close()
-	utils.SetID3Tag(id3File, performer, title, album, year, trck)
-	utils.SetID3TagAPICs(id3File, apicCoverData, apicIconData)
-	id3File.Close()
-	fileData, err := ioutil.ReadFile(filename)
-	if err != nil {
-		handleError(&w, err)
-		return
+	id3Buffer, err := id3.ParseBuffer(audioData)
+	if err == nil {
+		utils.SetID3Tag(id3Buffer, performer, title, album, year, trck)
+		utils.SetID3TagAPICs(id3Buffer, apicCoverData, apicIconData)
+		id3Buffer.Close()
+		audioData = id3Buffer.GetData()
+	} else {
+		log.Println("Error parsing ID3 tag:", err)
 	}
 
 	t3 := time.Now()
 	log.Printf("ID3 in: %.1f ms\n", float64(t3.UnixNano()-t2.UnixNano())/float64(1e6))
 
 	w.Header().Add("Content-Type", "audio/mpeg")
-	w.Write(fileData)
+	w.Write(audioData)
 
 	t4 := time.Now()
-	log.Printf("Wrote response: %d bytes in %.1f ms, %.1f MB/s\n", len(fileData), float64(t4.UnixNano()-t3.UnixNano())/float64(1e6), float64(len(fileData))/float64(1e6)/(float64(t4.UnixNano()-t3.UnixNano())/float64(1e9)))
+	log.Printf(
+		"Wrote response: %d bytes in %.1f ms, %.1f MB/s\n",
+		len(audioData),
+		float64(t4.UnixNano()-t3.UnixNano())/float64(1e6),
+		float64(len(audioData))/float64(1e6)/(float64(t4.UnixNano()-t3.UnixNano())/float64(1e9)))
 
 	t5 := time.Now()
 	log.Printf("Request fulfilled in %.1f ms\n", float64(t5.UnixNano()-t0.UnixNano())/float64(1e6))
 
 	log.Println("OK")
-	return
 }
 
 func ServeMusic() {

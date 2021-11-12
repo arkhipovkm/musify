@@ -4,6 +4,8 @@ github.com/Mihonarium/golongpoll v1.2.0 h1:VU5xi0fivNMjBbCUuobO9gl5UXLbv5n4lbEvq
 github.com/Mihonarium/golongpoll v1.2.0/go.mod h1:/WQya0ObrWZhOvqig6ZdKENj7B01FXSdIHbyCcnE1ok=
 github.com/arkhipovkm/id3-go v0.0.0-20210827221627-680f3dc12ff2 h1:giKvjD2b2C0k1RkBbzOoe7jAFiYKfuMgePUc6khEDZc=
 github.com/arkhipovkm/id3-go v0.0.0-20210827221627-680f3dc12ff2/go.mod h1:i+AZieZ+8SWzwXTzxWVIsK3K6PlP/hiMhYVPIpE5ZYI=
+github.com/arkhipovkm/id3-go v0.0.0-20211112001453-d4d621bb257e h1:K3jhaT3EOI/sjIELjhYl3WF9CINu+Iw8HkK9Uf14+dg=
+github.com/arkhipovkm/id3-go v0.0.0-20211112001453-d4d621bb257e/go.mod h1:IF10JLBo8ME9qRc2ra0ySqe3DTR+lW9mst3aTW9801M=
 github.com/bogem/id3v2 v1.2.0/go.mod h1:t78PK5AQ56Q47kizpYiV6gtjj3jfxlz87oFpty8DYs8=
 github.com/davecgh/go-spew v1.1.1 h1:vj9j/u1bqnvCEfJOwUhtlOARqs3+rkHYY13jYWTU97c=
 github.com/davecgh/go-spew v1.1.1/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSsI+c5H38=
@@ -29,4 +31,6 @@ golang.org/x/sys v0.0.0-20200323222414-85ca7c5b95cd/go.mod h1:h1NjWce9XRLGQEsW7w
 golang.org/x/text v0.3.0/go.mod h1:NqM8EUOU14njkJ3fqMW+pc6Ldnwhi/IjpwHt7yyuwOQ=
 golang.org/x/text v0.3.2 h1:tW2bmiBqwgJj/UpqtC8EpXEZVYOwU0yG4iWbprSVAcs=
 golang.org/x/text v0.3.2/go.mod h1:bEr9sfX3Q8Zfm5fL9x+3itogRgK3+ptLWKqgva+5dAk=
+golang.org/x/text v0.3.7 h1:olpwvP2KacW1ZWvsR7uQhoyTYvKAupfQrRGBFM352Gk=
+golang.org/x/text v0.3.7/go.mod h1:u+2+/6zg+i71rQMx5EYifcz6MCKuco9NR6JIITiCfzQ=
 golang.org/x/tools v0.0.0-20180917221912-90fa682c2a6e/go.mod h1:n7NCudcB/nEzxVGmLbDWY5pfWTLqBcC2KZ6jyYvM4mQ=

@@ -13,7 +13,7 @@ import (
 // > Album
 // > Year
 // > Track number
-func SetID3Tag(tag *id3.File, performer, title, album, year, trck string) error {
+func SetID3Tag(tag id3.Tagger, performer, title, album, year, trck string) error {
 	var err error
 	log.Println("Setting ID3 Tag:", performer, title, album, year, trck)
 	if performer != "" {
@@ -58,7 +58,7 @@ func SetID3Tag(tag *id3.File, performer, title, album, year, trck string) error 
 // SetID3TagAPICs writes 2 APIC tags:
 // > Other Icon (2)
 // > Cover(front) (3)
-func SetID3TagAPICs(tag *id3.File, apicCover []byte, apicIcon []byte) error {
+func SetID3TagAPICs(tag id3.Tagger, apicCover []byte, apicIcon []byte) error {
 	var err error
 	tag.DeleteFrames("APIC")
 	frameType := v2.V23FrameTypeMap["APIC"]
