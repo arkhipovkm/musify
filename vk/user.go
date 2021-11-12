@@ -11,6 +11,7 @@ import (
 	"os"
 	"regexp"
 	"strconv"
+	"strings"
 	"sync/atomic"
 
 	"github.com/arkhipovkm/musify/utils"
@@ -20,15 +21,25 @@ import (
 
 var VKAuthCounter uint64
 
+func addDefaultHeaders(req *http.Request) {
+	req.Header.Add("User-Agent", "Mozilla/5.0 (Windows NT 10.0; rv:78.0) Gecko/20100101 Firefox/78.0")
+	req.Header.Add("Referer", "https://vk.com/")
+	req.Header.Add("Origin", "https://vk.com/")
+}
+
 //login performs a login procedure on vk.com using username and password.
 //Returns remixsid cookie value and user_id
 func login(username, password, captchaSID, captchaKey string) (remixsid string, userID int, err error) {
-	u, _ := url.Parse("https://login.vk.com/?act=login")
+
 	jar, _ := cookiejar.New(&cookiejar.Options{PublicSuffixList: publicsuffix.List})
 	client := &http.Client{
 		Jar: jar,
 	}
-	preResp, err := client.Get("https://vk.com")
+	req, _ := http.NewRequest("GET", "https://vk.com", nil)
+
+	addDefaultHeaders(req)
+
+	preResp, err := client.Do(req)
 	if err != nil {
 		log.Fatal(err)
 		return
@@ -36,31 +47,52 @@ func login(username, password, captchaSID, captchaKey string) (remixsid string, 
 	defer preResp.Body.Close()
 	body, _ := ioutil.ReadAll(preResp.Body)
 
-	re := regexp.MustCompile(`&ip_h=(.*?)&lg_h=(.*?)&`)
-	groups := re.FindSubmatch(body)
+	reTo := regexp.MustCompile(`"to":"(.*?)`)
+	reIpH := regexp.MustCompile(`name="ip_h" value="([a-z0-9]+)"`)
+	reLgH := regexp.MustCompile(`name="lg_h" value="([a-z0-9]+)"`)
+	reLgDomainH := regexp.MustCompile(`name="lg_domain_h" value="([a-z0-9]+)"`)
+
+	var groups [][]byte
+
+	groups = reTo.FindSubmatch(body)
+	to := string(groups[1])
+
+	groups = reIpH.FindSubmatch(body)
 	ipH := string(groups[1])
-	lgH := string(groups[2])
+
+	groups = reLgH.FindSubmatch(body)
+	lgH := string(groups[1])
+
+	groups = reLgDomainH.FindSubmatch(body)
+	lgDomainH := string(groups[1])
 
 	data := url.Values{
 		"act":         []string{"login"},
 		"email":       []string{username},
 		"pass":        []string{password},
+		"to":          []string{to},
 		"ip_h":        []string{ipH},
 		"lg_h":        []string{lgH},
+		"lg_domain_h": []string{lgDomainH},
 		"captcha_sid": []string{captchaSID},
 		"captcha_key": []string{captchaKey},
 		"expire":      []string{""},
 		"role":        []string{"al_frame"},
 	}
-	resp, err := client.PostForm(u.String(), data)
+
+	u, _ := url.Parse("https://login.vk.com/")
+	req, _ = http.NewRequest("POST", u.String(), strings.NewReader(data.Encode()))
+	addDefaultHeaders(req)
+	resp, err := client.Do(req)
+
 	if err != nil {
 		return
 	}
 	defer resp.Body.Close()
 
 	bs, _ := ioutil.ReadAll(resp.Body)
-	re = regexp.MustCompile("onLoginReCaptcha")
-	if re.Match(bs) {
+	reCaptcha := regexp.MustCompile("onLoginReCaptcha")
+	if reCaptcha.Match(bs) {
 		newCaptchaSID := utils.RandNumSeq(14)
 		ownerChatID := os.Getenv("TELEGRAM_OWNER_CHAT_ID")
 		if ownerChatID != "" {
