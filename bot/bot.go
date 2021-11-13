@@ -53,11 +53,7 @@ var replicsLangMap = map[string]*Replics{
 		VkHelp:          "Я интегрирован с ВК! Вместо поискового запроса ты можешь ввести `@id` или `@username` ВК и я открою его аудиозаписи (должны быть открыты в настройках ВК).",
 		AllHelp: `Просто введи @%s в строке сообщения в любом чате для быстрого поиска и отправки музыки. Прямо как встроенные @vid, @pic и @gif.
 
-"Ответь" мне на сообщение с песней и я отправлю тебе ее текст. Подробнее: /lyrics
-
-Отправь мне короткое (2-3 сек) аудиосообщение с музыкой на фоне и я отправлю тебе распознанный трек вместе с его текстом. Подробнее: /recognition
-
-Вместо поискового запроса ты можешь ввести ` + "`" + `@id` + "`" + ` или ` + "`" + `@username` + "`" + ` ВК и я открою его аудиозаписи (должны быть открыты в настройках ВК). Подробнее: /vk
+Вместо поискового запроса ты можешь ввести ` + "`" + `@id` + "`" + ` или ` + "`" + `@username` + "`" + ` ВК и я открою его аудиозаписи. Подробнее: /vk
 
 Этот бот - с открытым кодом 👩‍💻🧑‍💻. Все желающие могут запустить копию этого бота у себя на компьютере, сервере или на *heroku*. Подробности на [GitHub](https://github.com/arkhipovkm/musify).`,
 		ButtonStart:                 "Начать",
@@ -76,13 +72,7 @@ var replicsLangMap = map[string]*Replics{
 		VkHelp:          "I am interated with vk.com. Instead of a search query, type a VK's `@id` or `@username` and I'll send you this user's mpersonal music (music must be publicly visible in settings).",
 		AllHelp: `Simply type @%s to quickly search for and send music in any chat from the message field. Just as those built-in bots: @vid, @pic or @gif.
 
-I can send you lyrics! "Reply" to any music message in this chat and I'll send you its lyrics. Details: /lyrics
-
-I can recognize music! Send me a short (2-3 sec) audiomessage with some music on the background and I'll send you the actual track. Details: /recognition
-
-I am interated with vk.com. Instead of a search query, type your VK's ` + "`" + `@id` + "`" + ` or ` + "`" + `@username` + "`" + ` and I'll send you this user's vk's audios (it must be publicly visible in vk.com settings). Details: /vk
-
-This bot is open-source 👩‍💻🧑‍💻. Anyone can run a copy of it on its own pc, server or *heroku*. Details on how to deploy are on [GitHub](https://github.com/arkhipovkm/musify).`,
+This bot is open-source 👩‍💻🧑‍💻. Anyone can run a copy of it on its own pc, server or *heroku*. Visit [GitHub](https://github.com/arkhipovkm/musify) for details!`,
 		ButtonStart:                 "Start",
 		ButtonBack:                  "Back",
 		ButtonDiscover:              "Open",
@@ -638,16 +628,16 @@ func process(bot *tgbotapi.BotAPI, updates tgbotapi.UpdatesChannel) {
 						}},
 					}
 					bot.Send(msg)
-				case "lyrics":
-					vmsg := tgbotapi.NewVideoShare(update.Message.Chat.ID, "BAACAgQAAxkBAAEC4jJgPDyWRZ1c2-q4msf4p4HFwHlhZwACgggAAt3m4FESYly8KpDuEx4E")
-					vmsg.Caption = replics.LyricsHelp
-					vmsg.ParseMode = "markdown"
-					bot.Send(vmsg)
-				case "recognition":
-					vmsg := tgbotapi.NewVideoShare(update.Message.Chat.ID, "BAACAgQAAxkBAAEC4jFgPDyW0z4J2CmY1AHYx1KXg_UeXQACgQgAAt3m4FGEq8P2dgObPh4E")
-					vmsg.Caption = replics.RecognitionHelp
-					vmsg.ParseMode = "markdown"
-					bot.Send(vmsg)
+				// case "lyrics":
+				// 	vmsg := tgbotapi.NewVideoShare(update.Message.Chat.ID, "BAACAgQAAxkBAAEC4jJgPDyWRZ1c2-q4msf4p4HFwHlhZwACgggAAt3m4FESYly8KpDuEx4E")
+				// 	vmsg.Caption = replics.LyricsHelp
+				// 	vmsg.ParseMode = "markdown"
+				// 	bot.Send(vmsg)
+				// case "recognition":
+				// 	vmsg := tgbotapi.NewVideoShare(update.Message.Chat.ID, "BAACAgQAAxkBAAEC4jFgPDyW0z4J2CmY1AHYx1KXg_UeXQACgQgAAt3m4FGEq8P2dgObPh4E")
+				// 	vmsg.Caption = replics.RecognitionHelp
+				// 	vmsg.ParseMode = "markdown"
+				// 	bot.Send(vmsg)
 				case "vk":
 					vmsg := tgbotapi.NewVideoShare(update.Message.Chat.ID, "BAACAgQAAxkBAAEC4jBgPDyW5joc6sMw2hz1yFZJPS-CuQACgAgAAt3m4FGs7_u_h4at_R4E")
 					vmsg.Caption = replics.VkHelp
