@@ -135,7 +135,10 @@ func musicHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	t2 := time.Now()
-	log.Printf("Fetched audio: %d bytes in %.1f ms, %.1f MB/s\n", len(audioData), float64(t2.UnixNano()-t1.UnixNano())/float64(1e6), float64(n)/float64(1e6)/(float64(t2.UnixNano()-t1.UnixNano())/float64(1e9)))
+	log.Printf(
+		"Fetched audio: %d bytes in %.1f ms, %.1f MB/s\n",
+		len(audioData), float64(t2.UnixNano()-t1.UnixNano())/float64(1e6),
+		float64(len(audioData))/float64(1e6)/(float64(t2.UnixNano()-t1.UnixNano())/float64(1e9)))
 
 	id3Buffer, err := id3.ParseBuffer(audioData)
 	if err == nil {
