@@ -110,7 +110,15 @@ func vkAuthLoop() {
 		if err != nil {
 			log.Println(err)
 		}
-		time.Sleep(23 * time.Hour)
+		var vkAuthLoopSleepTime int = 23
+		if os.Getenv("VK_AUTH_LOOP_SLEEP_TIME") != "" {
+			sleepTimeInt, err := strconv.Atoi(os.Getenv("VK_AUTH_LOOP_SLEEP_TIME"))
+			if err == nil {
+				vkAuthLoopSleepTime = sleepTimeInt
+			}
+		}
+		log.Printf("VK Auth Loop. Sleeping %d hours\n", vkAuthLoopSleepTime)
+		time.Sleep(time.Duration(vkAuthLoopSleepTime) * time.Hour)
 		utils.ClearCache(VK_USER.RemixSID)
 	}
 }
@@ -654,12 +662,13 @@ func process(bot *tgbotapi.BotAPI, updates tgbotapi.UpdatesChannel) {
 						if err != nil {
 							log.Println(err)
 						}
-						msg.Text = fmt.Sprintf("Cache writes: %d. Cache Reads: %d\nVK Requests: %d. VK Errors: %d, VK Auths: %d\nUsers: %d, Chats: %d, Messages: %d, CIRs: %d",
+						msg.Text = fmt.Sprintf("Cache writes: %d. Cache Reads: %d\nVK Requests: %d. VK Errors: %d, VK Auths: %d\nVK Last Auth Attempt: %s\nUsers: %d, Chats: %d, Messages: %d, CIRs: %d",
 							atomic.LoadUint64(&utils.CacheWriteAccessCounter),
 							atomic.LoadUint64(&utils.CacheReadAccessCounter),
 							atomic.LoadUint64(&vk.VKRequestCounter),
 							atomic.LoadUint64(&vk.VKErrorCounter),
 							atomic.LoadUint64(&vk.VKAuthCounter),
+							vk.VKAuthLastAttempt.Local().UTC(),
 							counts.UsersCount,
 							counts.ChatsCount,
 							counts.MsgCount,

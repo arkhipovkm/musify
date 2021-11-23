@@ -8,7 +8,6 @@ import (
 	"io/ioutil"
 	"log"
 	"net/http"
-	"net/http/cookiejar"
 	"net/url"
 	"os"
 	"path/filepath"
@@ -19,7 +18,6 @@ import (
 	"sync/atomic"
 
 	"github.com/arkhipovkm/musify/utils"
-	"golang.org/x/net/publicsuffix"
 	"golang.org/x/text/encoding/charmap"
 	"golang.org/x/text/transform"
 )
@@ -163,17 +161,9 @@ func extractRawHTML(payload map[string]interface{}) ([]byte, error) {
 }
 
 func doPOSTRequest(uri string, data url.Values, u *User) []byte {
-	URL, _ := url.Parse(uri)
-	cookie := http.Cookie{
-		Name:  "remixsid",
-		Value: u.RemixSID,
-	}
-	jar, _ := cookiejar.New(&cookiejar.Options{PublicSuffixList: publicsuffix.List})
-	jar.SetCookies(URL, []*http.Cookie{&cookie})
-	client := &http.Client{
-		Jar: jar,
-	}
-	resp, _ := client.PostForm(URL.String(), data)
+	req, _ := http.NewRequest("POST", uri, strings.NewReader(data.Encode()))
+	addDefaultHeaders(req)
+	resp, _ := VKSessionHttpClient.Do(req)
 	body, _ := ioutil.ReadAll(resp.Body)
 	defer resp.Body.Close()
 	utf8Body, _, _ := transform.Bytes(charmap.Windows1251.NewDecoder(), body)

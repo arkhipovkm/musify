@@ -13,6 +13,7 @@ import (
 	"strconv"
 	"strings"
 	"sync/atomic"
+	"time"
 
 	"github.com/arkhipovkm/musify/utils"
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api"
@@ -20,6 +21,8 @@ import (
 )
 
 var VKAuthCounter uint64
+var VKAuthLastAttempt time.Time
+var VKSessionHttpClient *http.Client
 
 func addDefaultHeaders(req *http.Request) {
 	req.Header.Add("User-Agent", "Mozilla/5.0 (Windows NT 10.0; rv:78.0) Gecko/20100101 Firefox/78.0")
@@ -31,15 +34,10 @@ func addDefaultHeaders(req *http.Request) {
 //Returns remixsid cookie value and user_id
 func login(username, password, captchaSID, captchaKey string) (remixsid string, userID int, err error) {
 
-	jar, _ := cookiejar.New(&cookiejar.Options{PublicSuffixList: publicsuffix.List})
-	client := &http.Client{
-		Jar: jar,
-	}
 	req, _ := http.NewRequest("GET", "https://vk.com", nil)
-
 	addDefaultHeaders(req)
 
-	preResp, err := client.Do(req)
+	preResp, err := VKSessionHttpClient.Do(req)
 	if err != nil {
 		log.Fatal(err)
 		return
@@ -47,7 +45,7 @@ func login(username, password, captchaSID, captchaKey string) (remixsid string, 
 	defer preResp.Body.Close()
 	body, _ := ioutil.ReadAll(preResp.Body)
 
-	reTo := regexp.MustCompile(`"to":"(.*?)`)
+	reTo := regexp.MustCompile(`"to":"(.*?)"`)
 	reIpH := regexp.MustCompile(`name="ip_h" value="([a-z0-9]+)"`)
 	reLgH := regexp.MustCompile(`name="lg_h" value="([a-z0-9]+)"`)
 	reLgDomainH := regexp.MustCompile(`name="lg_domain_h" value="([a-z0-9]+)"`)
@@ -55,16 +53,30 @@ func login(username, password, captchaSID, captchaKey string) (remixsid string, 
 	var groups [][]byte
 
 	groups = reTo.FindSubmatch(body)
-	to := string(groups[1])
+	var to string
+	if len(groups) > 0 {
+		to = string(groups[1])
+	}
 
 	groups = reIpH.FindSubmatch(body)
-	ipH := string(groups[1])
+	var ipH string
+	if len(groups) > 0 {
+		ipH = string(groups[1])
+	}
 
 	groups = reLgH.FindSubmatch(body)
-	lgH := string(groups[1])
+	var lgH string
+	if len(groups) > 0 {
+		lgH = string(groups[1])
+	}
 
 	groups = reLgDomainH.FindSubmatch(body)
-	lgDomainH := string(groups[1])
+	var lgDomainH string
+	if len(groups) > 0 {
+		lgDomainH = string(groups[1])
+	}
+
+	log.Printf("Auth attempt: IP_H: %s, LG_H: %s, LG_DOMAIN_H: %s, TO: %s\n", ipH, lgH, lgDomainH, to)
 
 	data := url.Values{
 		"act":         []string{"login"},
@@ -83,7 +95,7 @@ func login(username, password, captchaSID, captchaKey string) (remixsid string, 
 	u, _ := url.Parse("https://login.vk.com/")
 	req, _ = http.NewRequest("POST", u.String(), strings.NewReader(data.Encode()))
 	addDefaultHeaders(req)
-	resp, err := client.Do(req)
+	resp, err := VKSessionHttpClient.Do(req)
 
 	if err != nil {
 		return
@@ -117,7 +129,7 @@ func login(username, password, captchaSID, captchaKey string) (remixsid string, 
 		}
 	}
 
-	for _, cookie := range jar.Cookies(u) {
+	for _, cookie := range VKSessionHttpClient.Jar.Cookies(u) {
 		if cookie.Name == "remixsid" {
 			remixsid = cookie.Value
 		} else if cookie.Name == "l" {
@@ -158,6 +170,7 @@ func (u *User) Authenticate(captchaSID, captchaKey string) error {
 	}
 	log.Printf("Authenticated on VK Account: %s\n", starredID)
 	atomic.AddUint64(&VKAuthCounter, 1)
+	VKAuthLastAttempt = time.Now()
 	return err
 }
 
@@ -174,5 +187,13 @@ func NewUser(login, password string) *User {
 	return &User{
 		login:    login,
 		password: password,
+	}
+}
+
+func init() {
+	log.Println("Initializing VKSessionHttpClient")
+	jar, _ := cookiejar.New(&cookiejar.Options{PublicSuffixList: publicsuffix.List})
+	VKSessionHttpClient = &http.Client{
+		Jar: jar,
 	}
 }
