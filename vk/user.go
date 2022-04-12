@@ -139,6 +139,11 @@ func login(username, password, captchaSID, captchaKey string) (remixsid string, 
 			}
 		}
 	}
+
+	if os.Getenv("VK_USERID") != "" {
+		userID, err = strconv.Atoi(os.Getenv("VK_USERID"))
+	}
+
 	if remixsid == "" || userID == 0 {
 		err = errors.New("Auth failed. Check credentials! ")
 		return
@@ -190,10 +195,14 @@ func NewUser(login, password string) *User {
 	}
 }
 
-func init() {
+func ReInit() {
 	log.Println("Initializing VKSessionHttpClient")
 	jar, _ := cookiejar.New(&cookiejar.Options{PublicSuffixList: publicsuffix.List})
 	VKSessionHttpClient = &http.Client{
 		Jar: jar,
 	}
+}
+
+func init() {
+	ReInit()
 }

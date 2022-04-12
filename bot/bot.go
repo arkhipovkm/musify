@@ -108,7 +108,7 @@ func vkAuthLoop() {
 	for {
 		err := VK_USER.Authenticate(CaptchaSID, CaptchaKey)
 		if err != nil {
-			log.Println(err)
+			log.Panicln(err)
 		}
 		var vkAuthLoopSleepTime int = 23
 		if os.Getenv("VK_AUTH_LOOP_SLEEP_TIME") != "" {
@@ -119,6 +119,7 @@ func vkAuthLoop() {
 		}
 		log.Printf("VK Auth Loop. Sleeping %d hours\n", vkAuthLoopSleepTime)
 		time.Sleep(time.Duration(vkAuthLoopSleepTime) * time.Hour)
+		vk.ReInit()
 		utils.ClearCache(VK_USER.RemixSID)
 	}
 }
