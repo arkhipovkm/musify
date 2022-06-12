@@ -28,6 +28,7 @@ var VK_USER *vk.User = vk.NewDefaultUser()
 
 var CaptchaSID string
 var CaptchaKey string
+var BOT *tgbotapi.BotAPI
 
 type Replics struct {
 	StartHelp                   string
@@ -125,6 +126,18 @@ func vkAuthLoop() {
 }
 
 func prepareAudioStreamURI(a *vk.Audio, album *vk.Playlist) string {
+	fileID, err := db.SearchFileID(a.Performer, a.Title, a.Duration)
+	if err == nil && fileID != "" {
+		log.Printf("Found exisitng fileID for an audio track: %s - %s (%d): %s", a.Performer, a.Title, a.Duration, fileID)
+		_, err = BOT.GetFile(tgbotapi.FileConfig{
+			FileID: fileID,
+		})
+		if err == nil {
+			return fileID
+		} else {
+			log.Printf("Error occurred when veryfying fileID: %s", err.Error())
+		}
+	}
 	query := make(url.Values)
 	if album != nil {
 		var trck string
@@ -324,7 +337,7 @@ var InlineReUserAndQuery *regexp.Regexp = regexp.MustCompile("^@(.*?) (.*?)$")
 // InlineReUser - Case user
 var InlineReUser *regexp.Regexp = regexp.MustCompile("^@(.*?)$")
 
-func process(bot *tgbotapi.BotAPI, updates tgbotapi.UpdatesChannel) {
+func process(updates tgbotapi.UpdatesChannel) {
 	var err error
 	for update := range updates {
 		replics := getReplics(update)
@@ -365,7 +378,7 @@ func process(bot *tgbotapi.BotAPI, updates tgbotapi.UpdatesChannel) {
 						log.Println(err)
 					}
 				}
-				_, err = bot.AnswerInlineQuery(inlineQueryAnswer)
+				_, err = BOT.AnswerInlineQuery(inlineQueryAnswer)
 				if err != nil {
 					log.Println(err)
 				}
@@ -379,7 +392,7 @@ func process(bot *tgbotapi.BotAPI, updates tgbotapi.UpdatesChannel) {
 				if err != nil {
 					log.Println(err)
 				}
-				_, err = bot.AnswerInlineQuery(inlineQueryAnswer)
+				_, err = BOT.AnswerInlineQuery(inlineQueryAnswer)
 				if err != nil {
 					log.Println(err)
 				}
@@ -391,7 +404,7 @@ func process(bot *tgbotapi.BotAPI, updates tgbotapi.UpdatesChannel) {
 				if err != nil {
 					log.Println(err)
 				}
-				_, err = bot.AnswerInlineQuery(inlineQueryAnswer)
+				_, err = BOT.AnswerInlineQuery(inlineQueryAnswer)
 				if err != nil {
 					log.Println(err)
 				}
@@ -415,7 +428,7 @@ func process(bot *tgbotapi.BotAPI, updates tgbotapi.UpdatesChannel) {
 					searcheeUsers, err := vk.UsersGet(userID)
 					if err != nil {
 						log.Println(err)
-						_, err = bot.AnswerInlineQuery(inlineQueryAnswer)
+						_, err = BOT.AnswerInlineQuery(inlineQueryAnswer)
 						if err != nil {
 							log.Println(err)
 						}
@@ -423,7 +436,7 @@ func process(bot *tgbotapi.BotAPI, updates tgbotapi.UpdatesChannel) {
 					}
 					if searcheeUsers == nil || len(searcheeUsers) == 0 {
 						log.Println("No such VK user:", userID)
-						_, err = bot.AnswerInlineQuery(inlineQueryAnswer)
+						_, err = BOT.AnswerInlineQuery(inlineQueryAnswer)
 						if err != nil {
 							log.Println(err)
 						}
@@ -447,7 +460,7 @@ func process(bot *tgbotapi.BotAPI, updates tgbotapi.UpdatesChannel) {
 				if err != nil {
 					log.Println(err)
 				}
-				_, err = bot.AnswerInlineQuery(inlineQueryAnswer)
+				_, err = BOT.AnswerInlineQuery(inlineQueryAnswer)
 				if err != nil {
 					log.Println(err)
 				}
@@ -470,7 +483,7 @@ func process(bot *tgbotapi.BotAPI, updates tgbotapi.UpdatesChannel) {
 					searcheeUsers, err := vk.UsersGet(userID)
 					if err != nil {
 						log.Println(err)
-						_, err = bot.AnswerInlineQuery(inlineQueryAnswer)
+						_, err = BOT.AnswerInlineQuery(inlineQueryAnswer)
 						if err != nil {
 							log.Println(err)
 						}
@@ -478,7 +491,7 @@ func process(bot *tgbotapi.BotAPI, updates tgbotapi.UpdatesChannel) {
 					}
 					if searcheeUsers == nil || len(searcheeUsers) == 0 {
 						log.Println("No such VK user:", userID)
-						_, err = bot.AnswerInlineQuery(inlineQueryAnswer)
+						_, err = BOT.AnswerInlineQuery(inlineQueryAnswer)
 						if err != nil {
 							log.Println(err)
 						}
@@ -502,7 +515,7 @@ func process(bot *tgbotapi.BotAPI, updates tgbotapi.UpdatesChannel) {
 				if err != nil {
 					log.Println(err)
 				}
-				_, err = bot.AnswerInlineQuery(inlineQueryAnswer)
+				_, err = BOT.AnswerInlineQuery(inlineQueryAnswer)
 				if err != nil {
 					log.Println(err)
 				}
@@ -512,7 +525,7 @@ func process(bot *tgbotapi.BotAPI, updates tgbotapi.UpdatesChannel) {
 				if err != nil {
 					log.Println(err)
 				}
-				_, err = bot.AnswerInlineQuery(inlineQueryAnswer)
+				_, err = BOT.AnswerInlineQuery(inlineQueryAnswer)
 				if err != nil {
 					log.Println(err)
 				}
@@ -541,7 +554,7 @@ func process(bot *tgbotapi.BotAPI, updates tgbotapi.UpdatesChannel) {
 					log.Println(err)
 					continue
 				}
-				_, err = bot.AnswerCallbackQuery(
+				_, err = BOT.AnswerCallbackQuery(
 					tgbotapi.NewCallback(
 						update.CallbackQuery.ID,
 						fmt.Sprintf(replics.AnswerCallbackQueryAlbumGet, playlist.Title),
@@ -552,7 +565,7 @@ func process(bot *tgbotapi.BotAPI, updates tgbotapi.UpdatesChannel) {
 				}
 				for _, audioShare := range audioShares {
 					audioShare.ChatID = chatID
-					msg, err := bot.Send(audioShare)
+					msg, err := BOT.Send(audioShare)
 					if err != nil {
 						log.Println(err)
 					}
@@ -591,7 +604,7 @@ func process(bot *tgbotapi.BotAPI, updates tgbotapi.UpdatesChannel) {
 				}
 				msg := tgbotapi.NewMessage(chatID, lyrics.Lyrics)
 				msg.ReplyToMessageID = replyToMessageID
-				_, err = bot.Send(msg)
+				_, err = BOT.Send(msg)
 				if err != nil {
 					log.Println(err)
 				}
@@ -613,7 +626,7 @@ func process(bot *tgbotapi.BotAPI, updates tgbotapi.UpdatesChannel) {
 					lyrics, err := db.GetLyricsByID(lyricsID)
 					msg := tgbotapi.NewMessage(chatID, lyrics.Text)
 					msg.ReplyToMessageID = replyToMessageID
-					_, err = bot.Send(msg)
+					_, err = BOT.Send(msg)
 					if err != nil {
 						log.Println(err)
 					}
@@ -624,7 +637,7 @@ func process(bot *tgbotapi.BotAPI, updates tgbotapi.UpdatesChannel) {
 				msg := tgbotapi.NewMessage(update.Message.Chat.ID, "")
 				switch update.Message.Command() {
 				case "help":
-					msg.Text = fmt.Sprintf(replics.AllHelp, strings.ReplaceAll(bot.Self.UserName, "_", "\\_"))
+					msg.Text = fmt.Sprintf(replics.AllHelp, strings.ReplaceAll(BOT.Self.UserName, "_", "\\_"))
 					msg.ParseMode = "markdown"
 					switchInlineQuery := ""
 					msg.DisableWebPagePreview = true
@@ -636,7 +649,7 @@ func process(bot *tgbotapi.BotAPI, updates tgbotapi.UpdatesChannel) {
 							},
 						}},
 					}
-					bot.Send(msg)
+					BOT.Send(msg)
 				// case "lyrics":
 				// 	vmsg := tgbotapi.NewVideoShare(update.Message.Chat.ID, "BAACAgQAAxkBAAEC4jJgPDyWRZ1c2-q4msf4p4HFwHlhZwACgggAAt3m4FESYly8KpDuEx4E")
 				// 	vmsg.Caption = replics.LyricsHelp
@@ -651,7 +664,7 @@ func process(bot *tgbotapi.BotAPI, updates tgbotapi.UpdatesChannel) {
 					vmsg := tgbotapi.NewVideoShare(update.Message.Chat.ID, "BAACAgQAAxkBAAEC4jBgPDyW5joc6sMw2hz1yFZJPS-CuQACgAgAAt3m4FGs7_u_h4at_R4E")
 					vmsg.Caption = replics.VkHelp
 					vmsg.ParseMode = "markdown"
-					bot.Send(vmsg)
+					BOT.Send(vmsg)
 				case "stats":
 					ownerChatID, err := strconv.Atoi(os.Getenv("TELEGRAM_OWNER_CHAT_ID"))
 					if err != nil {
@@ -676,12 +689,12 @@ func process(bot *tgbotapi.BotAPI, updates tgbotapi.UpdatesChannel) {
 							counts.CIRCount,
 						)
 					}
-					bot.Send(msg)
+					BOT.Send(msg)
 				default:
 					vmsg := tgbotapi.NewVideoShare(update.Message.Chat.ID, "BAACAgQAAxkBAAEC4ldgPEYjDqBsUkTuzf_tvW62CJHnUQAChggAAqMD4FFp_uSLOlhNsx4E")
-					vmsg.Caption = fmt.Sprintf(replics.StartHelp, strings.ReplaceAll(bot.Self.UserName, "_", "\\_"))
+					vmsg.Caption = fmt.Sprintf(replics.StartHelp, strings.ReplaceAll(BOT.Self.UserName, "_", "\\_"))
 					vmsg.ParseMode = "markdown"
-					bot.Send(vmsg)
+					BOT.Send(vmsg)
 				}
 			} else if update.Message.Audio != nil {
 				go db.PutMessageAsync(update.Message)
@@ -693,7 +706,7 @@ func process(bot *tgbotapi.BotAPI, updates tgbotapi.UpdatesChannel) {
 					fileConfig := tgbotapi.FileConfig{
 						FileID: update.Message.Voice.FileID,
 					}
-					file, err := bot.GetFile(fileConfig)
+					file, err := BOT.GetFile(fileConfig)
 					if err != nil {
 						log.Println(err)
 						continue
@@ -741,7 +754,7 @@ func process(bot *tgbotapi.BotAPI, updates tgbotapi.UpdatesChannel) {
 						audioShare.ChatID = update.Message.Chat.ID
 						audioShare.ReplyToMessageID = update.Message.MessageID
 
-						audioMsg, err = bot.Send(audioShare)
+						audioMsg, err = BOT.Send(audioShare)
 						if err != nil {
 							log.Println(err)
 						}
@@ -767,7 +780,7 @@ func process(bot *tgbotapi.BotAPI, updates tgbotapi.UpdatesChannel) {
 						lyricsIVURL := fmt.Sprintf("https://t.me/iv?url=%s&rhash=%s", url.PathEscape(lyricsURL), os.Getenv("TELEGRAM_RHASH"))
 						msg.Text = fmt.Sprintf("[%s — %s](%s)", auddResp.Artist, auddResp.Title, lyricsIVURL)
 						msg.ParseMode = "markdown"
-						_, err = bot.Send(&msg)
+						_, err = BOT.Send(&msg)
 						if err != nil {
 							log.Println(err)
 						}
@@ -798,7 +811,7 @@ func process(bot *tgbotapi.BotAPI, updates tgbotapi.UpdatesChannel) {
 						if err == nil {
 							msg = tgbotapi.NewMessage(update.Message.Chat.ID, "Successful login 💪")
 							msg.ReplyToMessageID = update.Message.MessageID
-							bot.Send(&msg)
+							BOT.Send(&msg)
 						}
 					}
 				} else if update.Message.ReplyToMessage.Audio != nil {
@@ -914,7 +927,7 @@ func process(bot *tgbotapi.BotAPI, updates tgbotapi.UpdatesChannel) {
 							}
 						}
 					}
-					_, err = bot.Send(msg)
+					_, err = BOT.Send(msg)
 					if err != nil {
 						log.Println(err)
 					}
@@ -930,7 +943,9 @@ func Bot() {
 
 	go vkAuthLoop()
 
-	bot, err := tgbotapi.NewBotAPI(os.Getenv("TELEGRAM_BOT_API_TOKEN"))
+	var err error
+
+	BOT, err = tgbotapi.NewBotAPI(os.Getenv("TELEGRAM_BOT_API_TOKEN"))
 	if err != nil {
 		log.Panic(err)
 	}
@@ -941,31 +956,31 @@ func Bot() {
 		debug = true
 	}
 
-	bot.Debug = debug
-	log.Printf("Authenticated on Telegram Bot account %s", bot.Self.UserName)
+	BOT.Debug = debug
+	log.Printf("Authenticated on Telegram Bot account %s", BOT.Self.UserName)
 
 	var updates tgbotapi.UpdatesChannel
 	if !debug {
-		_, err = bot.SetWebhook(tgbotapi.NewWebhook(fmt.Sprintf("https://%s/%s", os.Getenv("APP_HOSTNAME"), bot.Token)))
+		_, err = BOT.SetWebhook(tgbotapi.NewWebhook(fmt.Sprintf("https://%s/%s", os.Getenv("APP_HOSTNAME"), BOT.Token)))
 		if err != nil {
 			log.Fatal(err)
 		}
-		info, err := bot.GetWebhookInfo()
+		info, err := BOT.GetWebhookInfo()
 		if err != nil {
 			log.Fatal(err)
 		}
 		if info.LastErrorDate != 0 {
 			log.Printf("Telegram callback failed: %s", info.LastErrorMessage)
 		}
-		updates = bot.ListenForWebhook("/" + bot.Token)
+		updates = BOT.ListenForWebhook("/" + BOT.Token)
 	} else {
-		_, err = bot.RemoveWebhook()
+		_, err = BOT.RemoveWebhook()
 		u := tgbotapi.NewUpdate(0)
 		u.Timeout = 60
-		updates, err = bot.GetUpdatesChan(u)
+		updates, err = BOT.GetUpdatesChan(u)
 	}
 
 	for w := 0; w < runtime.NumCPU()+2; w++ {
-		go process(bot, updates)
+		go process(updates)
 	}
 }

@@ -260,3 +260,24 @@ func PutChosenInlineResultAsync(cir *tgbotapi.ChosenInlineResult) {
 		log.Println(err)
 	}
 }
+
+func SearchFileID(performer, title string, duration int) (string, error) {
+	var err error
+	var fileID string
+
+	if DB == nil {
+		return fileID, err
+	}
+
+	// and date(from_unixtime(messages.date)) > date('2022-01-01')
+	resp := DB.QueryRow(
+		`select file_id from audios
+		join messages on messages.audio_id = audios.file_id
+		where duration = ? and performer = ? and title = ?
+		order by messages.date desc
+		limit 1`,
+		duration, performer, title,
+	)
+	err = resp.Scan(&fileID)
+	return fileID, err
+}
